@@ -1,9 +1,1 @@
-import {Product} from "../types/models";
-export const demoProducts:Product[]=[
-{id:"tomato",name:"Tomato",category:"Vegetables",price:40,unit:"kg",description:"Fresh farm tomatoes",stock:100},
-{id:"potato",name:"Potato",category:"Vegetables",price:35,unit:"kg",description:"Fresh potatoes",stock:100},
-{id:"onion",name:"Onion",category:"Vegetables",price:45,unit:"kg",description:"Fresh onions",stock:100},
-{id:"carrot",name:"Carrot",category:"Vegetables",price:60,unit:"kg",description:"Fresh carrots",stock:100},
-{id:"beans",name:"Beans",category:"Vegetables",price:80,unit:"kg",description:"Fresh green beans",stock:100},
-{id:"capsicum",name:"Capsicum",category:"Vegetables",price:70,unit:"kg",description:"Fresh capsicum",stock:100}
-];
+import{Product}from"../types/models";export const demoProducts:Product[]=[{id:"tomato",name:"Tomato",category:"Vegetables",price:40,unit:"kg",description:"Fresh farm tomatoes",stock:100},{id:"potato",name:"Potato",category:"Vegetables",price:35,unit:"kg",description:"Fresh potatoes",stock:100},{id:"onion",name:"Onion",category:"Vegetables",price:45,unit:"kg",description:"Fresh onions",stock:100},{id:"carrot",name:"Carrot",category:"Vegetables",price:60,unit:"kg",description:"Fresh carrots",stock:100},{id:"beans",name:"Beans",category:"Vegetables",price:80,unit:"kg",description:"Fresh green beans",stock:100},{id:"capsicum",name:"Capsicum",category:"Vegetables",price:70,unit:"kg",description:"Fresh capsicum",stock:100}];
