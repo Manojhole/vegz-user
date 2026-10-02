@@ -1,16 +1,1 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-
-export default function ProfileScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
-      <Text>Customer account and settings will be implemented here.</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: "700" }
-});
+import React from"react";import{Button,StyleSheet,Text,View}from"react-native";import AsyncStorage from"@react-native-async-storage/async-storage";export default function ProfileScreen({onLogout}:any){return <View style={s.c}><Text style={s.h}>Profile</Text><Text>Vegz customer account</Text><Text>Manage your account, addresses and support.</Text><Button title="Logout" onPress={async()=>{await AsyncStorage.multiRemove(["vegz-token","vegz-orders","vegz-cart"]);onLogout()}}/></View>}const s=StyleSheet.create({c:{flex:1,padding:24,gap:18},h:{fontSize:30,fontWeight:"800"}});
