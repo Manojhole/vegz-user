@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express"; import cors from "cors"; import helmet from "helmet"; import bcrypt from "bcryptjs"; import jwt from "jsonwebtoken"; import mysql from "mysql2/promise"; import {z} from "zod";
 const app=express(),port=Number(process.env.PORT||4000),jwtSecret=process.env.JWT_SECRET; if(!jwtSecret) throw new Error("JWT_SECRET is required");
-const pool=mysql.createPool({uri:process.env.DATABASE_URL||"mysql://vegz:change-me@localhost:3306/vegz",connectionLimit:10});
+const pool=mysql.createPool(process.env.DATABASE_URL||"mysql://vegz:change-me@localhost:3306/vegz");
 const origins=(process.env.CORS_ORIGINS||"").split(",").map(x=>x.trim()).filter(Boolean);
 app.use(helmet()); app.use(cors({origin:(o,cb)=>!o||origins.includes(o)?cb(null,true):cb(new Error("CORS origin denied"))})); app.use(express.json({limit:"1mb"}));
 type Req=express.Request&{user?:{id:number;role:string}}; const auth=(req:Req,res:express.Response,next:express.NextFunction)=>{try{const h=req.headers.authorization;if(!h?.startsWith("Bearer "))return res.status(401).json({message:"Authentication required"});req.user=jwt.verify(h.slice(7),jwtSecret) as any;next()}catch{return res.status(401).json({message:"Invalid or expired token"})}};
