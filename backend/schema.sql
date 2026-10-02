@@ -39,3 +39,6 @@ CREATE TABLE IF NOT EXISTS settlements (
 INSERT IGNORE INTO products(name,category,price,unit,description,stock) VALUES
 ('Tomato','Vegetables',40,'kg','Fresh red tomatoes',100),('Potato','Root',35,'kg','Farm fresh potatoes',100),
 ('Spinach','Leafy',25,'bunch','Fresh green spinach',100),('Carrot','Root',60,'kg','Crisp fresh carrots',100);
+
+-- For an existing database, run once:
+-- ALTER TABLE users MODIFY password_hash VARCHAR(255) NULL;
