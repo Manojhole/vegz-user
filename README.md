@@ -115,3 +115,61 @@ The application will be developed incrementally, starting with the customer expe
 ## 📄 License
 
 This project is currently intended for development and educational purposes.
+
+
+## 🧑‍💻 Current Development
+
+The initial customer-app foundation is now in place:
+
+- Expo + React Native Android application
+- TypeScript configuration
+- Home screen with vegetable product cards
+- Product details screen
+- Cart screen foundation
+- Profile screen foundation
+- Backend API configuration via `EXPO_PUBLIC_API_BASE_URL`
+- Product API service foundation
+
+## 🔄 CI/CD
+
+GitHub Actions are included for the application lifecycle:
+
+### CI
+Runs on pushes and pull requests to `main`:
+
+1. Install dependencies
+2. Type-check the TypeScript code
+3. Export the Android bundle
+
+### Android Build
+Runs manually or when a version tag such as `v0.1.0` is pushed.
+
+The Android build uses **Expo EAS**. Configure the repository secret:
+
+```text
+EXPO_TOKEN
+```
+
+The token must be stored only in GitHub Actions Secrets and never committed to the repository.
+
+## 🚀 Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start Expo:
+
+```bash
+npm start
+```
+
+Set the backend API when required:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://api.vegz.online
+```
+
+The application will be connected to the real Vegz backend as the authentication, product, cart, order, payment, and delivery modules are implemented.
