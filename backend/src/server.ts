@@ -1,4 +1,4 @@
-import "dotenv/config";
+import crypto from "node:crypto";import "dotenv/config";
 import express from "express"; import cors from "cors"; import helmet from "helmet"; import bcrypt from "bcryptjs"; import jwt from "jsonwebtoken"; import mysql from "mysql2/promise"; import {z} from "zod";
 const app=express(),port=Number(process.env.PORT||4000),jwtSecret=process.env.JWT_SECRET; if(!jwtSecret) throw new Error("JWT_SECRET is required");
 const pool=mysql.createPool(process.env.DATABASE_URL||"mysql://vegz:change-me@localhost:3306/vegz");
@@ -17,7 +17,7 @@ app.post("/api/auth/request-otp",asyncRoute(async(req:any,res:any)=>{
   const phone=p.data.phone; const otp=String(Math.floor(100000+Math.random()*900000));
   otpStore.set(phone,{hash:await bcrypt.hash(otp,10),expires:Date.now()+5*60*1000});
   const[rows]=await pool.execute<mysql.RowDataPacket[]>("SELECT id,active FROM users WHERE phone=? LIMIT 1",[phone]);
-  if(!rows[0]) await pool.execute("INSERT INTO users(name,phone,password_hash,role) VALUES(?,?,NULL,'customer')",[phone,phone]);
+  if(!rows[0]) await pool.execute("INSERT INTO users(name,phone,password_hash,role) VALUES(?,?,?,'customer')",[phone,phone,await bcrypt.hash(crypto.randomUUID(),12)]);
   const response:any={success:true,message:"OTP sent"};
   if(process.env.NODE_ENV!=="production") response.devOtp=otp;
   res.json(response);
