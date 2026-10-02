@@ -3,6 +3,6 @@ async function req<T>(path:string,options:RequestInit={}){const token=await Asyn
 export function getProducts(){return req<Product[]>("/api/products")}
 export function requestOtp(phone:string){return req<{success:boolean;message:string;devOtp?:string}>("/api/auth/request-otp",{method:"POST",body:JSON.stringify({phone})})}
 export function verifyOtp(phone:string,otp:string){return req<{token:string;user:{id:number;name:string;phone:string;role:string}}>("/api/auth/verify-otp",{method:"POST",body:JSON.stringify({phone,otp})})}
-export function createOrder(order:{items:{productId:string;quantity:number}[];address:Order["address"]}){return req<{id:number;status:string;total:number}>("/api/orders",{method:"POST",headers:{"Idempotency-Key":crypto.randomUUID()},body:JSON.stringify(order)})}
+export function createOrder(order:{items:{productId:string;quantity:number}[];address:Order["address"]}){return req<{id:number;status:string;total:number}>("/api/orders",{method:"POST",headers:{"Idempotency-Key":`${Date.now()}-${Math.random().toString(36).slice(2)}`},body:JSON.stringify(order)})}
 export function getOrders(){return req<Order[]>("/api/orders")}
 export async function saveToken(token:string){await AsyncStorage.setItem("vegz-token",token)}
