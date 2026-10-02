@@ -1,4 +1,4 @@
-import "dotenv/config";
+import crypto from "node:crypto";import "dotenv/config";
 import express from "express"; import cors from "cors"; import helmet from "helmet"; import bcrypt from "bcryptjs"; import jwt from "jsonwebtoken"; import mysql from "mysql2/promise"; import {z} from "zod";
 const app=express(),port=Number(process.env.PORT||4000),jwtSecret=process.env.JWT_SECRET; if(!jwtSecret) throw new Error("JWT_SECRET is required");
 const pool=mysql.createPool(process.env.DATABASE_URL||"mysql://vegz:change-me@localhost:3306/vegz");
@@ -9,6 +9,27 @@ const roles=(...allowed:string[])=>(req:Req,res:express.Response,next:express.Ne
 const asyncRoute=(fn:any)=>(req:express.Request,res:express.Response,next:express.NextFunction)=>Promise.resolve(fn(req,res,next)).catch(next);
 app.get("/health",asyncRoute(async(_:any,res:any)=>{try{await pool.query("SELECT 1");res.json({status:"ok",database:"ok"})}catch{res.status(503).json({status:"degraded",database:"unavailable"})}}));
 
+const otpRequestSchema=z.object({phone:z.string().regex(/^\\+?[0-9]{10,15}$/)});
+const otpVerifySchema=z.object({phone:z.string().regex(/^\\+?[0-9]{10,15}$/),otp:z.string().regex(/^[0-9]{6}$/)});
+const otpStore=new Map<string,{hash:string;expires:number}>();
+app.post("/api/auth/request-otp",asyncRoute(async(req:any,res:any)=>{
+  const p=otpRequestSchema.safeParse(req.body); if(!p.success)return res.status(400).json({message:"Invalid mobile number"});
+  const phone=p.data.phone; const otp=String(Math.floor(100000+Math.random()*900000));
+  otpStore.set(phone,{hash:await bcrypt.hash(otp,10),expires:Date.now()+5*60*1000});
+  const[rows]=await pool.execute<mysql.RowDataPacket[]>("SELECT id,active FROM users WHERE phone=? LIMIT 1",[phone]);
+  if(!rows[0]) await pool.execute("INSERT INTO users(name,phone,password_hash,role) VALUES(?,?,?,'customer')",[phone,phone,await bcrypt.hash(crypto.randomUUID(),12)]);
+  const response:any={success:true,message:"OTP sent"};
+  if(process.env.NODE_ENV!=="production") response.devOtp=otp;
+  res.json(response);
+}));
+app.post("/api/auth/verify-otp",asyncRoute(async(req:any,res:any)=>{
+  const p=otpVerifySchema.safeParse(req.body); if(!p.success)return res.status(400).json({message:"Invalid OTP"});
+  const challenge=otpStore.get(p.data.phone); if(!challenge||challenge.expires<Date.now()||!(await bcrypt.compare(p.data.otp,challenge.hash)))return res.status(401).json({message:"Invalid or expired OTP"});
+  otpStore.delete(p.data.phone);
+  const[rows]=await pool.execute<mysql.RowDataPacket[]>("SELECT id,name,phone,email,role,active FROM users WHERE phone=? LIMIT 1",[p.data.phone]);
+  const u=rows[0]; if(!u||!u.active)return res.status(403).json({message:"Account is inactive"});
+  res.json({token:jwt.sign({id:u.id,role:u.role},jwtSecret,{expiresIn:"7d"}),user:{id:u.id,name:u.name,phone:u.phone,email:u.email,role:u.role}});
+}));
 const registerSchema=z.object({name:z.string().min(2).max(100),phone:z.string().min(5).max(100),password:z.string().min(8).max(100),email:z.string().email().optional()});
 app.post("/api/auth/register",asyncRoute(async(req:any,res:any)=>{const p=registerSchema.safeParse(req.body);if(!p.success)return res.status(400).json({message:"Invalid registration details"});const hash=await bcrypt.hash(p.data.password,12);try{const[r]=await pool.execute<mysql.ResultSetHeader>("INSERT INTO users(name,phone,email,password_hash,role) VALUES(?,?,?,?,'customer')",[p.data.name,p.data.phone,p.data.email||null,hash]);res.status(201).json({success:true,user:{id:r.insertId,name:p.data.name,phone:p.data.phone,email:p.data.email||null,role:"customer"}})}catch(e:any){if(e.code==="ER_DUP_ENTRY")return res.status(409).json({message:"Account already exists"});throw e}}));
 const loginSchema=z.object({username:z.string().min(3).max(100),password:z.string().min(1).max(100)});
@@ -30,7 +51,7 @@ app.patch("/api/agent/orders/:id/status",auth,roles("agent","admin"),asyncRoute(
 
 const productSchema=z.object({name:z.string().min(2).max(150),category:z.string().min(2).max(80),price:z.number().nonnegative(),unit:z.string().min(1).max(30),description:z.string().max(5000).optional(),stock:z.number().int().nonnegative(),imageUrl:z.string().url().optional()});
 app.post("/api/shop/products",auth,roles("shop","admin"),asyncRoute(async(req:Req,res:any)=>{const p=productSchema.safeParse(req.body);if(!p.success)return res.status(400).json({message:"Invalid product"});const[r]=await pool.execute<mysql.ResultSetHeader>("INSERT INTO products(shop_id,name,category,price,unit,description,stock,image_url) VALUES(?,?,?,?,?,?,?,?)",[req.user!.role==="shop"?req.user!.id:null,p.data.name,p.data.category,p.data.price,p.data.unit,p.data.description||null,p.data.stock,p.data.imageUrl||null]);res.status(201).json({id:r.insertId})}));
-app.patch("/api/shop/products/:id",auth,roles("shop","admin"),asyncRoute(async(req:Req,res:any)=>{const p=productSchema.partial().safeParse(req.body);if(!p.success)return res.status(400).json({message:"Invalid product"});const fields:any={name:p.data.name,category:p.data.category,price:p.data.price,unit:p.data.unit,description:p.data.description,stock:p.data.stock,image_url:p.data.imageUrl};const set=Object.entries(fields).filter(([,v])=>v!==undefined);if(!set.length)return res.status(400).json({message:"No changes"});const where=req.user!.role==="shop"?" AND shop_id=?":"";const vals=set.map(x=>x[1]);const[r]=await pool.execute<mysql.ResultSetHeader>(`UPDATE products SET ${set.map(([k])=>k+"=?").join(",")} WHERE id=?${where}`,req.user!.role==="shop"?[...vals,req.params.id,req.user!.id]:[...vals,req.params.id]);if(!r.affectedRows)return res.status(404).json({message:"Product not found"});res.json({success:true})}));
+app.patch("/api/shop/products/:id",auth,roles("shop","admin"),asyncRoute(async(req:Req,res:any)=>{const p=productSchema.partial().safeParse(req.body);if(!p.success)return res.status(400).json({message:"Invalid product"});const fields:any={name:p.data.name,category:p.data.category,price:p.data.price,unit:p.data.unit,description:p.data.description,stock:p.data.stock,image_url:p.data.imageUrl};const set=Object.entries(fields).filter(([,v])=>v!==undefined);if(!set.length)return res.status(400).json({message:"No changes"});const where=req.user!.role==="shop"?" AND shop_id=?":"";const vals=set.map(x=>x[1]) as any[];const[r]=await pool.execute<mysql.ResultSetHeader>(`UPDATE products SET ${set.map(([k])=>k+"=?").join(",")} WHERE id=?${where}`,req.user!.role==="shop"?[...vals,req.params.id,req.user!.id]:[...vals,req.params.id]);if(!r.affectedRows)return res.status(404).json({message:"Product not found"});res.json({success:true})}));
 
 app.get("/api/admin/dashboard",auth,roles("admin"),asyncRoute(async(_:Req,res:any)=>{const[[users]]=await pool.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS count FROM users");const[[products]]=await pool.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS count FROM products WHERE active=1");const[[orders]]=await pool.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS count FROM orders");const[[revenue]]=await pool.query<mysql.RowDataPacket[]>("SELECT COALESCE(SUM(total),0) AS total FROM orders WHERE payment_status='PAID'");res.json({users:Number(users.count),products:Number(products.count),orders:Number(orders.count),revenue:Number(revenue.total)})}));
 app.get("/api/admin/orders",auth,roles("admin"),asyncRoute(async(_:Req,res:any)=>{const[rows]=await pool.query("SELECT id,user_id AS userId,shop_id AS shopId,agent_id AS agentId,status,total,payment_status AS paymentStatus,created_at AS createdAt FROM orders ORDER BY created_at DESC LIMIT 100");res.json(rows)}));

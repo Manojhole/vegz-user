@@ -3,5 +3,15 @@
   "compilerOptions": {
     "strict": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "App.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "backend",
+    "web",
+    "node_modules"
+  ]
 }
