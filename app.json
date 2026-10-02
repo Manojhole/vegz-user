@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Vegz User",
+    "slug": "vegz-user",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.vegz.user"
+    }
+  }
+}
