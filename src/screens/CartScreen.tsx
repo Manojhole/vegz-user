@@ -1,17 +1,1 @@
-import React from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
-
-export default function CartScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Your Cart</Text>
-      <Text>No items yet.</Text>
-      <Button title="Checkout" onPress={() => {}} />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 16 },
-  title: { fontSize: 28, fontWeight: "700" }
-});
+import React from"react";import{Button,FlatList,StyleSheet,Text,View}from"react-native";import{useStore}from"../store";export default function CartScreen({navigation}:any){const{cart,remove,total}=useStore();return <View style={s.c}><Text style={s.h}>Your Cart</Text>{!cart.length?<Text>Your cart is empty.</Text>:<><FlatList data={cart} keyExtractor={x=>x.id} renderItem={({item})=><View style={s.row}><View><Text style={s.n}>{item.name}</Text><Text>{item.quantity} × ₹{item.price}</Text></View><Button title="−" onPress={()=>remove(item.id)}/></View>}/><Text style={s.total}>Total: ₹{total}</Text><Button title="Proceed to Checkout" onPress={()=>navigation.navigate("Checkout")}/></>}</View>}const s=StyleSheet.create({c:{flex:1,padding:20},h:{fontSize:30,fontWeight:"800",marginBottom:15},row:{padding:14,borderWidth:1,borderRadius:10,marginBottom:8,flexDirection:"row",justifyContent:"space-between"},n:{fontSize:18,fontWeight:"700"},total:{fontSize:24,fontWeight:"800",marginVertical:15}});
