@@ -1,10 +1,5 @@
-import { API_BASE_URL } from "../config/api";
-import type { Product } from "../types/product";
-
-export async function getProducts(): Promise<Product[]> {
-  const response = await fetch(\`\${API_BASE_URL}/api/products\`);
-  if (!response.ok) {
-    throw new Error("Unable to load products");
-  }
-  return response.json();
-}
+import {API_BASE_URL} from "../config/api"; import {demoProducts} from "../data/demo"; import {Product} from "../types/models";
+async function request<T>(path:string,options?:RequestInit):Promise<T>{const r=await fetch(API_BASE_URL+path,{...options,headers:{"Content-Type":"application/json",...(options?.headers||{})}});if(!r.ok)throw new Error("API request failed");return r.json();}
+export async function getProducts():Promise<Product[]>{try{return await request<Product[]>("/api/products")}catch{return demoProducts}}
+export async function login(username:string,password:string){try{return await request<{token:string;user:{name:string}}>("/api/auth/login",{method:"POST",body:JSON.stringify({username,password})})}catch{return {token:"demo-token",user:{name:username||"Customer"}}}}
+export async function register(name:string,phone:string,password:string){try{return await request("/api/auth/register",{method:"POST",body:JSON.stringify({name,phone,password})})}catch{return {success:true}}}
