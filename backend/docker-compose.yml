@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root-change-me
+      MYSQL_DATABASE: vegz
+      MYSQL_USER: vegz
+      MYSQL_PASSWORD: change-me
+    ports: ["3306:3306"]
+    volumes: [vegz_mysql:/var/lib/mysql, ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro]
+  api:
+    build: .
+    environment:
+      PORT: 4000
+      DATABASE_URL: mysql://vegz:change-me@mysql:3306/vegz
+      JWT_SECRET: change-this-in-production
+      CORS_ORIGINS: http://localhost:3000,http://localhost:8081
+    ports: ["4000:4000"]
+    depends_on: [mysql]
+volumes:
+  vegz_mysql:
