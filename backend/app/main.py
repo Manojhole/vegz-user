@@ -136,7 +136,7 @@ SEED_PRODUCTS = [
     {
         "name": "Green Peas", "slug": "green-peas", "category": "Fresh picks",
         "description": "Sweet peas for curries and snacks.",
-        "image_url": "https://images.unsplash.com/photo-1587735243615-c03f25a-aff15?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("80.00"), "stock_qty": 35,
     },
     {
@@ -196,7 +196,7 @@ SEED_PRODUCTS = [
     {
         "name": "Green Chilli", "slug": "green-chilli", "category": "Daily essentials",
         "description": "Green chillies to add a little heat.",
-        "image_url": "https://images.unsplash.com/photo-1588252303782-cb80119res?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("60.00"), "stock_qty": 35,
     },
     {
