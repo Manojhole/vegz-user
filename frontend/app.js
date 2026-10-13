@@ -1,6 +1,6 @@
 const API = "";
-const FREE_DELIVERY_MINIMUM = 499;
-const STANDARD_DELIVERY_FEE = 25;
+let FREE_DELIVERY_MINIMUM = 499;
+let STANDARD_DELIVERY_FEE = 25;
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const productIcons = {
   tomato: "🍅", potato: "🥔", "red-onion": "🧅", carrot: "🥕",
@@ -88,6 +88,11 @@ async function request(path, options) {
 
 async function loadProducts() {
   try {
+    try {
+      const config = await request("/api/store-config");
+      FREE_DELIVERY_MINIMUM = Number(config.free_delivery_minimum || FREE_DELIVERY_MINIMUM);
+      STANDARD_DELIVERY_FEE = Number(config.delivery_fee || STANDARD_DELIVERY_FEE);
+    } catch (_) {}
     products = await request("/api/products");
     const ids = new Set(products.map((product) => String(product.id)));
     Object.keys(cart).forEach((id) => { if (!ids.has(String(id))) delete cart[id]; });
@@ -234,14 +239,14 @@ function renderFlow(stage) {
     const inputs = $$(".otp-boxes input");
     inputs.forEach((input, index) => {
       input.addEventListener("input", () => {
-        input.value = input.value.replace(/\\D/g, "").slice(-1);
+        input.value = input.value.replace(/\D/g, "").slice(-1);
         if (input.value && inputs[index + 1]) inputs[index + 1].focus();
       });
       input.addEventListener("keydown", (event) => {
         if (event.key === "Backspace" && !input.value && inputs[index - 1]) inputs[index - 1].focus();
       });
       input.addEventListener("paste", (event) => {
-        const pasted = (event.clipboardData || window.clipboardData).getData("text").replace(/\\D/g, "").slice(0, 6);
+        const pasted = (event.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "").slice(0, 6);
         if (pasted) {
           event.preventDefault();
           inputs.forEach((box, i) => { box.value = pasted[i] || ""; });
@@ -321,12 +326,12 @@ function bindForm(id, handler) {
   if (form) form.addEventListener("submit", (event) => { event.preventDefault(); handler(new FormData(form), form); });
 }
 function phoneWithIndiaCode(raw) {
-  const digits = String(raw || "").replace(/\\D/g, "");
+  const digits = String(raw || "").replace(/\D/g, "");
   return "+91" + digits.slice(-10);
 }
 async function submitOtpRequest(formData, form) {
   const phone = phoneWithIndiaCode(formData.get("phone"));
-  if (phone.replace(/\\D/g, "").length !== 12) { toast("Enter a valid 10-digit mobile number.", "error"); return; }
+  if (phone.replace(/\D/g, "").length !== 12) { toast("Enter a valid 10-digit mobile number.", "error"); return; }
   const button = $('button[type="submit"]', form);
   button.disabled = true;
   button.innerHTML = "Requesting code…";
@@ -341,7 +346,7 @@ async function submitOtpRequest(formData, form) {
 }
 async function submitOtpVerify(formData, form) {
   const otp = ["d1","d2","d3","d4","d5","d6"].map((key) => String(formData.get(key) || "")).join("");
-  if (!/^\\d{6}$/.test(otp)) { toast("Enter all 6 digits of the verification code.", "error"); return; }
+  if (!/^\d{6}$/.test(otp)) { toast("Enter all 6 digits of the verification code.", "error"); return; }
   const button = $('button[type="submit"]', form);
   button.disabled = true;
   button.innerHTML = "Verifying…";
