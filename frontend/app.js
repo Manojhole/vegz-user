@@ -363,6 +363,7 @@ async function submitOtpVerify(formData, form) {
 }
 async function openAddressStage() {
   try {
+    if (!currentUser) currentUser = await request("/api/me");
     savedAddresses = await request("/api/addresses");
     selectedAddressId = (savedAddresses.find((address) => address.is_default) || savedAddresses[0] || {}).id || null;
     showAddressForm = savedAddresses.length === 0;
