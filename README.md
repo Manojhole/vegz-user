@@ -35,7 +35,11 @@ The .env.example uses MySQL. For a quick SQLite run, set DATABASE_URL=sqlite:///
 
 ## Android and web
 
-The frontend is a PWA with a manifest and static-asset service worker. On Android, open the deployed HTTPS site in Chrome and choose **Install app** or **Add to Home screen**. HTTPS is required for service-worker/PWA installation on a public domain.
+The frontend is a PWA with a manifest and static-asset service worker. On Android, open the deployed HTTPS site in Chrome and choose **Install app** or **Add to Home screen**.
+
+A native Android WebView shell is also included under the `android/` folder. Open that folder in Android Studio with JDK 17 and Android SDK 35 installed. It loads `https://vegz.online` by default; change `WEB_APP_URL` in `android/app/build.gradle` for a staging environment. Build an APK from Android Studio or run `gradle assembleDebug` after installing compatible Gradle 8.7+ and configuring the Android SDK. The shell is only a client container; customer screens and business APIs remain in the web/Python application. The APK has not been built in this environment.
+
+HTTPS is required for PWA installation and is enforced by the Android shell. The vegz.online DNS and hosting are not configured by this repository commit.
 
 ## API and database
 
