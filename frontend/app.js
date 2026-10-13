@@ -55,7 +55,7 @@ function readCart() {
   catch (_) { return {}; }
 }
 function saveCart() {
-  localStorage.setItem("vegz_cart", JSON.stringify(cart));
+  try { localStorage.setItem("vegz_cart", JSON.stringify(cart)); } catch (_) { toast("Your basket could not be saved on this device. Check browser storage settings.", "error"); }
 }
 function escapeHtml(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, (char) => ({
@@ -131,8 +131,14 @@ async function loadProducts() {
       STANDARD_DELIVERY_FEE = Number(config.delivery_fee || STANDARD_DELIVERY_FEE);
     } catch (_) {}
     products = await request("/api/products");
-    const ids = new Set(products.map((product) => String(product.id)));
-    Object.keys(cart).forEach((id) => { if (!ids.has(String(id))) delete cart[id]; });
+    const byId = new Map(products.map((product) => [String(product.id), product]));
+    Object.keys(cart).forEach((id) => {
+      const product = byId.get(String(id));
+      const quantity = Number(cart[id]);
+      if (!product || !Number.isInteger(quantity) || quantity <= 0) delete cart[id];
+      else cart[id] = Math.min(quantity, Number(product.stock_qty || 0), 99);
+      if (cart[id] <= 0) delete cart[id];
+    });
     saveCart();
     renderCategories();
     renderProducts();
@@ -157,7 +163,7 @@ function renderProducts() {
   const filtered = products.filter((product) => {
     const matchesDepartment = departmentFor(product) === activeDepartment;
     const matchesCategory = activeCategory === "all" || product.category === activeCategory;
-    const haystack = (product.name + " " + product.category + " " + product.description).toLowerCase();
+    const haystack = (product.name + " " + localizedName(product.name) + " " + product.category + " " + ((LANG[currentLanguage].category || {})[product.category] || product.category) + " " + product.description).toLowerCase();
     return matchesDepartment && matchesCategory && haystack.includes(query.toLowerCase());
   });
   if (!filtered.length) {
@@ -172,7 +178,7 @@ function renderProducts() {
     const slug = escapeHtml(product.slug);
     return '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
       '<div class="' + imageClass + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span></div>' +
-      '<div class="product-info"><span class="product-category">' + escapeHtml(product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
+      '<div class="product-info"><span class="product-category">' + escapeHtml((LANG[currentLanguage].category || {})[product.category] || product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
       (qty
         ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
@@ -211,7 +217,7 @@ function renderCart() {
     $("#cartItems").innerHTML = entries.map(({ product, quantity }) => {
       const image = escapeHtml(product.image_url || "");
       return '<div class="cart-row"><div class="cart-thumb' + (image ? '' : ' fallback') + '">' + (image ? '<img src="' + image + '" alt="">' : '') + '<span aria-hidden="true">' + iconFor(product) + '</span></div>' +
-        '<div><div class="cart-row-name">' + escapeHtml(product.name) + '</div><div class="cart-row-price">' + currency(product.price) + ' / ' + escapeHtml(product.unit) + '</div>' +
+        '<div><div class="cart-row-name">' + escapeHtml(localizedName(product.name)) + '</div><div class="cart-row-price">' + currency(product.price) + ' / ' + escapeHtml(product.unit) + '</div>' +
         '<div class="quantity-controls"><button type="button" data-minus="' + product.id + '" aria-label="Decrease ' + escapeHtml(product.name) + ' quantity">−</button><span>' + quantity + '</span><button type="button" data-add="' + product.id + '" aria-label="Increase ' + escapeHtml(product.name) + ' quantity">+</button></div></div>' +
         '<div class="cart-row-total">' + currency(Number(product.price) * quantity) + '<button class="remove-line" type="button" data-remove="' + product.id + '">Remove</button></div></div>';
     }).join("");
@@ -234,7 +240,8 @@ function addToCart(id) {
     return;
   }
   const current = Number(cart[id] || 0);
-  if (current >= Math.min(99, Number(product.stock_qty || 99))) {
+  const availableStock = Math.max(0, Number(product.stock_qty || 0));
+  if (availableStock <= 0 || current >= Math.min(99, availableStock)) {
     toast("That is all the available stock for " + product.name + ".", "error");
     return;
   }
