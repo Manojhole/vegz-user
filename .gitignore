@@ -1,0 +1,8 @@
+.env
+backend/.env
+backend/vegz.db
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
