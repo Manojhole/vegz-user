@@ -160,13 +160,13 @@ SEED_PRODUCTS = [
     {
         "name": "Bitter Gourd", "slug": "bitter-gourd", "category": "Fresh picks",
         "description": "Fresh karela for traditional recipes.",
-        "image_url": "https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("50.00"), "stock_qty": 35,
     },
     {
         "name": "Bottle Gourd", "slug": "bottle-gourd", "category": "Fresh picks",
         "description": "Tender bottle gourd for light meals.",
-        "image_url": "https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "pc", "price": Decimal("35.00"), "stock_qty": 35,
     },
     {
@@ -184,7 +184,7 @@ SEED_PRODUCTS = [
     {
         "name": "Garlic", "slug": "garlic", "category": "Daily essentials",
         "description": "Aromatic garlic for everyday flavour.",
-        "image_url": "https://images.unsplash.com/photo-1615477550927-6ec8445fc5b5?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("120.00"), "stock_qty": 35,
     },
     {
@@ -232,37 +232,37 @@ SEED_PRODUCTS = [
     {
         "name": "Basmati Rice", "slug": "basmati-rice", "category": "Grocery",
         "description": "Fragrant rice for biryani and pulao.",
-        "image_url": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("95.00"), "stock_qty": 60,
     },
     {
         "name": "Toor Dal", "slug": "toor-dal", "category": "Grocery",
         "description": "Split pigeon peas for everyday dal.",
-        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("145.00"), "stock_qty": 60,
     },
     {
         "name": "Moong Dal", "slug": "moong-dal", "category": "Grocery",
         "description": "Moong dal for khichdi and soups.",
-        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("125.00"), "stock_qty": 60,
     },
     {
         "name": "Chana Dal", "slug": "chana-dal", "category": "Grocery",
         "description": "Chana dal for curries and snacks.",
-        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("95.00"), "stock_qty": 60,
     },
     {
         "name": "Wheat Flour", "slug": "wheat-flour", "category": "Grocery",
         "description": "Everyday atta for soft rotis.",
-        "image_url": "https://images.unsplash.com/photo-1608198093002-ad4e005484d7?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("48.00"), "stock_qty": 60,
     },
     {
         "name": "Besan", "slug": "besan", "category": "Grocery",
         "description": "Gram flour for pakoras and chilla.",
-        "image_url": "https://images.unsplash.com/photo-1608198093002-ad4e005484d7?auto=format&fit=crop&w=700&q=85",
+        "image_url": "",
         "unit": "kg", "price": Decimal("85.00"), "stock_qty": 60,
     },
     {
@@ -359,9 +359,16 @@ def seed_products() -> None:
 
     db = SessionLocal()
     try:
-        existing_slugs = set(db.scalars(select(Product.slug)).all())
-        missing = [Product(**item) for item in SEED_PRODUCTS if item["slug"] not in existing_slugs]
-        if missing:
+        existing_products = {product.slug: product for product in db.scalars(select(Product)).all()}
+        missing = []
+        for item in SEED_PRODUCTS:
+            existing = existing_products.get(item["slug"])
+            if existing is None:
+                missing.append(Product(**item))
+            elif item.get("image_url") == "":
+                # Use the product-specific icon fallback for images known to be broken or mismatched.
+                existing.image_url = ""
+        if missing or any(item.get("image_url") == "" and item["slug"] in existing_products for item in SEED_PRODUCTS):
             db.add_all(missing)
             db.commit()
     finally:
