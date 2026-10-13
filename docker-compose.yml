@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: vegz
+      MYSQL_USER: vegz_user
+      MYSQL_PASSWORD: change-me
+      MYSQL_ROOT_PASSWORD: local-root-change-me
+    ports:
+      - "3306:3306"
+    volumes:
+      - vegz_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-plocal-root-change-me"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    environment:
+      APP_ENV: development
+      JWT_SECRET: local-only-change-this-jwt-secret-123456789
+      OTP_SECRET: local-only-change-this-otp-secret-123456789
+      DATABASE_URL: mysql+pymysql://vegz_user:change-me@mysql:3306/vegz
+      ACCESS_TOKEN_MINUTES: 10080
+      OTP_TTL_MINUTES: 5
+      DELIVERY_FEE: 25
+      FREE_DELIVERY_MINIMUM: 499
+      CORS_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,https://vegz.online,https://www.vegz.online
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  vegz_mysql_data:
