@@ -53,7 +53,7 @@ HTTPS is required for PWA installation and is enforced by the Android shell. The
 ## Before production
 
 - Set APP_ENV=production, a strong unique JWT_SECRET, a separate strong OTP_SECRET, and the production MySQL DATABASE_URL. Do not use the example values.
-- Integrate an approved SMS OTP provider. OTP is intentionally demo-only in development; non-development OTP requests return an explicit error until a provider is configured.
+- Configure AWS SNS OTP delivery for testing by setting `OTP_PROVIDER=sns`, `AWS_REGION`, and `OTP_MESSAGE_TEMPLATE` in your untracked root `.env`. Install dependencies with `pip install -r backend/requirements.txt`. Supply AWS credentials through your local AWS profile / `aws configure` or an attached IAM role (never commit credentials). The SNS principal needs permission to publish SMS, and SNS SMS sandbox accounts can message only verified destination numbers. The default development configuration continues to return a demo OTP unless `OTP_PROVIDER=sns` is selected.
 - Integrate a payment gateway (for example, Razorpay) and verify signed payment callbacks before marking orders paid. The current online option creates an order with payment status pending; it does **not** collect money yet.
 - Add schema migrations, production rate limiting, monitoring/backups, a TLS reverse proxy, and secrets management.
 - Point vegz.online DNS to your hosting provider and configure HTTPS there. Domain and hosting have not been configured by this repository commit.
