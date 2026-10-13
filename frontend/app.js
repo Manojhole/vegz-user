@@ -142,9 +142,11 @@ function renderProducts() {
       '<div class="product-image"><img src="' + image + '" alt="' + name + '" loading="lazy"><span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span></div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml(product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
-      '<button class="add-button' + (qty ? " added" : "") + '" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">' + (qty ? qty + " in +" : "+") + '</button></div></div></article>';
+      (qty
+        ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
+        : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>') + '</div></div></article>';
   }).join("");
-  $(".product-image img").forEach((image) => {
+  $("#productGrid .product-image img").forEach((image) => {
     image.addEventListener("error", () => image.parentElement.classList.add("image-fallback"), { once: true });
     if (image.complete && image.naturalWidth === 0) image.parentElement.classList.add("image-fallback");
   });
@@ -196,7 +198,7 @@ function addToCart(id) {
   const cartDepartments = new Set(cartProducts().map((item) => departmentFor(item.product)));
   const nextDepartment = departmentFor(product);
   if (cartDepartments.size && !cartDepartments.has(nextDepartment)) {
-    toast("Vegetables and grocery have separate suppliers and deliveries. Please place or clear your " + Array.from(cartDepartments).map(departmentLabel).join(" + ") + " basket before adding " + departmentLabel(nextDepartment).toLowerCase() + " items.", "error");
+    toast("SEPARATE SUPPLIERS & DELIVERIES\nYour " + Array.from(cartDepartments).map(departmentLabel).join(" + ") + " basket is separate. Please place that order or clear the basket before adding " + departmentLabel(nextDepartment).toLowerCase() + " items.", "error");
     return;
   }
   const current = Number(cart[id] || 0);
