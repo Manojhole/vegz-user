@@ -506,7 +506,7 @@ document.addEventListener("click", (event) => {
   if (department) {
     activeDepartment = department.dataset.department;
     activeCategory = "all";
-    $$$("#departmentTabs [data-department]").forEach((button) => {
+    $$("#departmentTabs [data-department]").forEach((button) => {
       const selected = button.dataset.department === activeDepartment;
       button.classList.toggle("selected", selected);
       button.setAttribute("aria-pressed", String(selected));
