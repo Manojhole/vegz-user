@@ -144,8 +144,9 @@ function renderProducts() {
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
       '<button class="add-button' + (qty ? " added" : "") + '" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">' + (qty ? qty + " in +" : "+") + '</button></div></div></article>';
   }).join("");
-  $$(".product-image img").forEach((image) => {
+  $(".product-image img").forEach((image) => {
     image.addEventListener("error", () => image.parentElement.classList.add("image-fallback"), { once: true });
+    if (image.complete && image.naturalWidth === 0) image.parentElement.classList.add("image-fallback");
   });
 }
 
@@ -491,15 +492,17 @@ function beginOrders() {
 }
 
 document.addEventListener("click", (event) => {
-  const add = event.target.closest("[data-add]");
-  const minus = event.target.closest("[data-minus]");
-  const remove = event.target.closest("[data-remove]");
-  const category = event.target.closest("[data-category]");
-  const track = event.target.closest("[data-track]");
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  if (!target) return;
+  const add = target.closest("[data-add]");
+  const minus = target.closest("[data-minus]");
+  const remove = target.closest("[data-remove]");
+  const category = target.closest("[data-category]");
+  const track = target.closest("[data-track]");
   if (add) { addToCart(add.dataset.add); return; }
   if (minus) { decreaseCart(minus.dataset.minus); return; }
   if (remove) { removeCart(remove.dataset.remove); return; }
-  const department = event.target.closest("[data-department]");
+  const department = target.closest("[data-department]");
   if (department) {
     activeDepartment = department.dataset.department;
     activeCategory = "all";
@@ -519,8 +522,8 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (track) { trackOrder(track.dataset.track); return; }
-  if (event.target.id === "retryProductsButton") loadProducts();
-  if (event.target.id === "clearSearchButton") {
+  if (target.id === "retryProductsButton") loadProducts();
+  if (target.id === "clearSearchButton") {
     query = "";
     activeCategory = "all";
     $("#searchInput").value = "";
