@@ -355,7 +355,7 @@ SEED_PRODUCTS = [
         "description": "Pantry pasta for quick family meals.",
         "image_url": "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=700&q=85",
         "unit": "500 g", "price": Decimal("75.00"), "stock_qty": 60,
-    }
+    },
     {
         "name": "Drumstick", "slug": "drumstick", "category": "Fresh picks",
         "description": "Tender drumsticks for sambar and saaru.",
