@@ -136,7 +136,7 @@ SEED_PRODUCTS = [
     {
         "name": "Green Peas", "slug": "green-peas", "category": "Fresh picks",
         "description": "Sweet peas for curries and snacks.",
-        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("80.00"), "stock_qty": 35,
     },
     {
@@ -232,37 +232,37 @@ SEED_PRODUCTS = [
     {
         "name": "Basmati Rice", "slug": "basmati-rice", "category": "Grocery",
         "description": "Fragrant rice for biryani and pulao.",
-        "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("95.00"), "stock_qty": 60,
     },
     {
         "name": "Toor Dal", "slug": "toor-dal", "category": "Grocery",
         "description": "Split pigeon peas for everyday dal.",
-        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("145.00"), "stock_qty": 60,
     },
     {
         "name": "Moong Dal", "slug": "moong-dal", "category": "Grocery",
         "description": "Moong dal for khichdi and soups.",
-        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("125.00"), "stock_qty": 60,
     },
     {
         "name": "Chana Dal", "slug": "chana-dal", "category": "Grocery",
         "description": "Chana dal for curries and snacks.",
-        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("95.00"), "stock_qty": 60,
     },
     {
         "name": "Wheat Flour", "slug": "wheat-flour", "category": "Grocery",
         "description": "Everyday atta for soft rotis.",
-        "image_url": "https://images.unsplash.com/photo-1627485937980-221c88ac04f9?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1608198093002-ad4e005484d7?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("48.00"), "stock_qty": 60,
     },
     {
         "name": "Besan", "slug": "besan", "category": "Grocery",
         "description": "Gram flour for pakoras and chilla.",
-        "image_url": "https://images.unsplash.com/photo-1627485937980-221c88ac04f9?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1608198093002-ad4e005484d7?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("85.00"), "stock_qty": 60,
     },
     {
@@ -322,7 +322,7 @@ SEED_PRODUCTS = [
     {
         "name": "Poha", "slug": "poha", "category": "Grocery",
         "description": "Flattened rice for quick breakfasts.",
-        "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=85",
+        "image_url": "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("65.00"), "stock_qty": 60,
     },
     {
