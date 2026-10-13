@@ -396,3 +396,19 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .department-tab small { margin-top:4px; color:var(--muted); font-size:10px; line-height:1.4; }
 .department-note { margin:0 0 12px; color:var(--muted); font-size:11px; line-height:1.5; }
 @media(max-width:600px) { .department-tabs { gap:8px; } .department-tab { padding:11px 9px; gap:8px; align-items:flex-start; } .department-emoji { width:32px; height:32px; flex-basis:32px; font-size:19px; border-radius:9px; } .department-tab strong { font-size:12px; } .department-tab small { font-size:9px; } }
+
+/* Vegz interaction polish: clear quantity controls, stronger supplier notice and motion */
+.card-quantity-controls { display:flex; align-items:center; gap:8px; border:1px solid #cbdcc2; background:#f1f6ec; border-radius:11px; padding:4px; min-height:39px; }
+.card-quantity-button { display:grid; place-items:center; width:30px; height:29px; border:0; border-radius:8px; background:#fff; color:var(--green-dark); font-size:20px; font-weight:700; transition:transform .16s ease,background .16s ease; }
+.card-quantity-button:hover { background:#e1edd9; transform:scale(1.06); }
+.card-quantity-button.plus { background:var(--green); color:#fff; }
+.card-quantity-value { min-width:16px; text-align:center; font-size:13px; font-weight:800; color:var(--green-dark); font-variant-numeric:tabular-nums; }
+.toast.error { max-width:min(560px,calc(100vw - 28px)); padding:18px 21px; background:#fff8f2; border:2px solid #d88958; color:#71381f; font-size:15px; font-weight:650; line-height:1.55; white-space:pre-line; box-shadow:0 18px 50px rgba(92,49,20,.24); animation:notice-pop .24s cubic-bezier(.2,.7,.2,1) both; }
+.toast.error::before { content:"⚠  IMPORTANT"; display:block; margin-bottom:5px; font-size:11px; letter-spacing:.13em; font-weight:900; color:#a34c23; }
+@keyframes notice-pop { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+.product-card { will-change:transform; }
+.product-card:active { transform:scale(.99); }
+.product-image img { background:#f1f3e9; }
+.product-image.image-fallback { border:1px dashed #d2ddc8; }
+.product-image.image-fallback .product-emoji { display:grid; place-items:center; width:100%; height:100%; font-size:clamp(48px,8vw,76px); background:radial-gradient(circle at 50% 40%,#fffefa,#e7efdf); }
+@media(prefers-reduced-motion:reduce) { .card-quantity-button,.product-card,.toast.error { animation:none!important; transition:none!important; } }
