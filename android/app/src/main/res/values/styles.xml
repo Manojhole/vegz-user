@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.VegzUser" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#246B45</item>
+        <item name="android:statusBarColor">@color/vegz_green</item>
+        <item name="android:navigationBarColor">@color/vegz_green</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/vegz_cream</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
