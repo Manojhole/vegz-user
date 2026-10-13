@@ -497,3 +497,237 @@ html[lang="kn"] .product-name{line-height:1.5}
 @media (prefers-reduced-motion: reduce) {
   .hero-content, .hero-art, .cart-count.bump, .cart-row { animation: none !important; }
 }
+
+
+/* Visual refresh v2 — layout-only refinements; preserves existing IDs and behaviour. */
+:root {
+  --page-wash: #f7f8f1;
+}
+body {
+  background:
+    radial-gradient(ellipse at 8% 13%, rgba(223, 235, 211, .25), transparent 27%),
+    #fbfaf6;
+}
+.announcement {
+  letter-spacing: .015em;
+}
+.site-header {
+  margin-bottom: 8px;
+}
+.hero {
+  max-width: 1450px;
+  min-height: 326px;
+  padding: 34px clamp(28px, 5vw, 70px) 30px;
+  margin: 0 auto 20px;
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 16px 42px rgba(42, 74, 43, .055);
+  background:
+    radial-gradient(circle at 76% 46%, rgba(255,255,255,.76), transparent 23%),
+    radial-gradient(circle at 7% 100%, rgba(255,255,255,.32), transparent 24%),
+    linear-gradient(118deg,#eef4e7 0%,#e8f0df 52%,#dce8d2 100%);
+}
+.hero-content { max-width: 590px; }
+.hero h1 {
+  font-size: clamp(32px, 3.25vw, 48px);
+  line-height: 1.13;
+  letter-spacing: -1.7px;
+}
+.hero-art { height: 250px; }
+.benefit-strip {
+  max-width: 1280px;
+  margin: 0 auto 34px;
+  padding: 0 18px;
+  gap: 14px;
+}
+.benefit {
+  min-height: 76px;
+  padding: 14px 18px;
+  border: 1px solid #e8ecdf;
+  border-radius: 16px;
+  background: rgba(255,254,250,.84);
+  box-shadow: 0 5px 18px rgba(40,64,37,.025);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.benefit:hover {
+  transform: translateY(-2px);
+  border-color: #d9e5d1;
+  box-shadow: 0 10px 24px rgba(40,64,37,.06);
+}
+.shop-section {
+  max-width: 1450px;
+  padding: 30px clamp(18px, 2.5vw, 34px) 34px;
+  border: 1px solid #eceee4;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(246,248,239,.78), rgba(251,250,246,.45) 180px);
+}
+.section-heading {
+  align-items: end;
+  gap: 22px;
+  margin-bottom: 24px;
+}
+.section-heading h2 {
+  font-size: clamp(29px, 3vw, 39px);
+  letter-spacing: -1.5px;
+}
+.section-subtitle {
+  margin-top: 7px;
+}
+.search-box {
+  min-height: 50px;
+  border-radius: 15px;
+  box-shadow: 0 4px 14px rgba(36, 60, 37, .025);
+}
+.shop-layout {
+  gap: 22px;
+}
+.catalog-column {
+  min-width: 0;
+}
+.department-tabs {
+  gap: 14px;
+  margin-bottom: 13px;
+}
+.department-tab {
+  min-height: 78px;
+  padding: 15px 17px;
+  border-color: #e5e9dc;
+  box-shadow: 0 3px 12px rgba(44,64,37,.025);
+}
+.department-tab.selected {
+  background: linear-gradient(115deg, #edf5e8, #f4f7ed);
+  box-shadow: inset 0 0 0 1px var(--green), 0 7px 18px rgba(35,100,65,.07);
+}
+.department-emoji {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+  box-shadow: 0 2px 8px rgba(30,60,35,.04);
+}
+.department-note {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-left: 3px solid #9ebc8e;
+  border-radius: 0 9px 9px 0;
+  background: rgba(238,244,231,.72);
+  color: #667566;
+  font-size: 11px;
+}
+.category-row {
+  gap: 9px;
+  margin-bottom: 18px;
+}
+.category-chip {
+  padding: 10px 15px;
+  border-color: #e4e9dc;
+  background: #fffefa;
+  font-size: 11px;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.category-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 13px rgba(38,70,42,.06);
+}
+.category-chip.selected {
+  box-shadow: 0 5px 12px rgba(28,95,60,.12);
+}
+.product-grid {
+  gap: 15px;
+}
+.product-card {
+  padding: 10px 10px 13px;
+  border-color: #e8eadf;
+  border-radius: 18px;
+  box-shadow: 0 4px 15px rgba(45,60,37,.025);
+  background: rgba(255,254,250,.96);
+}
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 28px rgba(38,74,47,.09);
+}
+.product-image {
+  height: clamp(130px, 13vw, 172px);
+  border-radius: 12px;
+  background: linear-gradient(140deg,#f2f5eb,#e7eddf);
+}
+.product-info {
+  padding: 13px 4px 0;
+}
+.product-name {
+  font-size: 15px;
+  letter-spacing: -.15px;
+}
+.product-description {
+  min-height: 29px;
+  line-height: 1.55;
+}
+.product-bottom {
+  padding: 5px 4px 0;
+}
+.add-button, .card-quantity-controls {
+  min-height: 42px;
+  border-radius: 12px;
+}
+.cart-panel {
+  border-radius: 22px;
+  border-color: #e6eadd;
+  box-shadow: 0 12px 32px rgba(41,62,35,.055);
+}
+.cart-panel-head {
+  padding: 20px 19px 17px;
+  background: linear-gradient(135deg,#f1f5e8,#eaf1e2);
+}
+.cart-items {
+  padding: 8px 18px;
+}
+.cart-summary {
+  padding: 17px 19px 19px;
+}
+.checkout-button {
+  border-radius: 13px;
+  min-height: 50px;
+}
+.catalog-footnote {
+  padding: 15px 2px 0;
+  line-height: 1.6;
+}
+.closing-banner {
+  margin-top: 36px;
+  box-shadow: 0 12px 30px rgba(29,72,46,.08);
+}
+.site-footer {
+  margin-top: 28px;
+  padding-bottom: 24px;
+}
+@media (min-width: 1200px) {
+  .shop-layout { grid-template-columns: minmax(0, 1fr) 330px; }
+  .cart-panel { position: sticky; top: 16px; align-self: start; }
+}
+@media (max-width: 900px) {
+  .hero { min-height: 300px; padding: 28px 30px; }
+  .benefit-strip { margin-bottom: 24px; }
+  .shop-section { padding: 23px 20px 27px; }
+  .product-image { height: 145px; }
+}
+@media (max-width: 640px) {
+  .hero { margin: 0 12px 15px; padding: 25px 20px 18px; }
+  .benefit-strip { gap: 8px; margin: 0 12px 20px; padding: 0; }
+  .benefit { min-height: 0; padding: 11px 8px; border-radius: 12px; }
+  .benefit small { line-height: 1.35; }
+  .shop-section { margin: 0 10px; padding: 21px 12px 24px; border-radius: 20px; }
+  .section-heading { margin-bottom: 18px; gap: 14px; }
+  .department-tabs { gap: 8px; }
+  .department-tab { min-height: 70px; padding: 10px 9px; border-radius: 13px; }
+  .department-emoji { width: 34px; height: 34px; flex-basis: 34px; font-size: 19px; }
+  .category-row { margin-bottom: 14px; }
+  .category-chip { padding: 9px 11px; }
+  .product-grid { gap: 10px; }
+  .product-card { padding: 7px 7px 10px; border-radius: 14px; }
+  .product-image { height: clamp(108px, 36vw, 154px); border-radius: 10px; }
+  .product-info { padding: 10px 3px 0; }
+  .product-name { font-size: 13px; }
+  .product-description { font-size: 10px; }
+  .closing-banner { margin-left: 12px; margin-right: 12px; margin-top: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .benefit { transition: none !important; }
+}
