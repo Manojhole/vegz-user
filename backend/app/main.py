@@ -1,9 +1,13 @@
 import hashlib
+import logging
 import os
 import secrets
 from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
+
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 
 import jwt
 from dotenv import load_dotenv
@@ -27,6 +31,9 @@ OTP_SECRET = os.getenv("OTP_SECRET", "local-dev-only-otp-secret")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = int(os.getenv("ACCESS_TOKEN_MINUTES", "10080"))
 OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "5"))
+AWS_REGION = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-south-1"))
+OTP_MESSAGE_TEMPLATE = os.getenv("OTP_MESSAGE_TEMPLATE", "Your Vegz verification code is {otp}. It expires in {minutes} minutes. Do not share this code.")
+logger = logging.getLogger("vegz.auth")
 DELIVERY_FEE = Decimal(os.getenv("DELIVERY_FEE", "25"))
 FREE_DELIVERY_MINIMUM = Decimal(os.getenv("FREE_DELIVERY_MINIMUM", "499.00"))
 
@@ -461,10 +468,11 @@ def list_products(
 
 @app.post("/api/auth/request-otp")
 def request_otp(payload: OtpRequest, db: Session = Depends(get_db)):
-    if APP_ENV != "development":
+    sms_enabled = os.getenv("OTP_PROVIDER", "demo" if APP_ENV == "development" else "none").strip().lower() == "sns"
+    if APP_ENV != "development" and not sms_enabled:
         raise HTTPException(
             status_code=503,
-            detail="SMS OTP provider is not configured. Configure an approved SMS provider before enabling non-development checkout.",
+            detail="SMS OTP is not configured. Set OTP_PROVIDER=sns and configure AWS SNS access before enabling checkout.",
         )
     now = datetime.utcnow()
     recent = db.scalar(
@@ -486,13 +494,36 @@ def request_otp(payload: OtpRequest, db: Session = Depends(get_db)):
     db.add(session)
     db.commit()
 
-    # Production integration point: send this code through an approved SMS provider.
-    # Never expose the OTP in production API responses or logs.
+    # AWS SNS sends codes to verified test numbers in the SNS SMS sandbox.
+    # Credentials must come from environment configuration or an attached IAM role.
+    if sms_enabled:
+        try:
+            message = OTP_MESSAGE_TEMPLATE.format(otp=otp, minutes=OTP_TTL_MINUTES)
+            sns = boto3.client("sns", region_name=AWS_REGION)
+            sns.publish(
+                PhoneNumber=payload.phone,
+                Message=message,
+                MessageAttributes={
+                    "AWS.SNS.SMS.SMSType": {
+                        "DataType": "String",
+                        "StringValue": os.getenv("SNS_SMS_TYPE", "Transactional"),
+                    }
+                },
+            )
+        except (BotoCoreError, ClientError, ValueError) as exc:
+            db.delete(session)
+            db.commit()
+            logger.warning("SNS OTP delivery failed (%s).", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Could not send the verification SMS. Check AWS SNS region, permissions, sandbox registration, and SMS spending limits.",
+            ) from exc
+
     response = {
-        "message": "Verification code requested. Connect an SMS provider before production use.",
+        "message": "Verification code sent." if sms_enabled else "Demo verification code created.",
         "expires_in_seconds": OTP_TTL_MINUTES * 60,
     }
-    if APP_ENV == "development":
+    if APP_ENV == "development" and not sms_enabled:
         response["demo_otp"] = otp
     return response
 
