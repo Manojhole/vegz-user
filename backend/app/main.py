@@ -186,6 +186,15 @@ def _order_payload(order: Order) -> dict:
     }
 
 
+@app.get("/api/store-config")
+def store_config():
+    return {
+        "currency": "INR",
+        "delivery_fee": float(DELIVERY_FEE),
+        "free_delivery_minimum": float(FREE_DELIVERY_MINIMUM),
+    }
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "vegz-user-api"}
@@ -204,6 +213,11 @@ def list_products(
 
 @app.post("/api/auth/request-otp")
 def request_otp(payload: OtpRequest, db: Session = Depends(get_db)):
+    if APP_ENV != "development":
+        raise HTTPException(
+            status_code=503,
+            detail="SMS OTP provider is not configured. Configure an approved SMS provider before enabling non-development checkout.",
+        )
     now = datetime.utcnow()
     recent = db.scalar(
         select(OtpSession)
