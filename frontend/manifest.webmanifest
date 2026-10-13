@@ -1,0 +1,18 @@
+{
+  "name": "Vegz — Fresh vegetables",
+  "short_name": "Vegz",
+  "description": "Fresh vegetables delivered to your doorstep.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7ef",
+  "theme_color": "#246b45",
+  "icons": [
+    {
+      "src": "/vegz-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
