@@ -249,6 +249,13 @@ function addToCart(id) {
   saveCart();
   renderProducts();
   renderCart();
+  const countBadge = $("#cartCount");
+  if (countBadge) {
+    countBadge.classList.remove("bump");
+    void countBadge.offsetWidth;
+    countBadge.classList.add("bump");
+    window.setTimeout(() => countBadge.classList.remove("bump"), 450);
+  }
   toast(product.name + " added to your basket.");
 }
 function decreaseCart(id) {
