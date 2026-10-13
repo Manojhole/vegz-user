@@ -6,3 +6,10 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+
+# Android / Gradle
+.gradle/
+**/build/
+.idea/
+local.properties
+*.iml
