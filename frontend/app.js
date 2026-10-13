@@ -9,6 +9,7 @@ const productIcons = {
 
 let products = [];
 let activeCategory = "all";
+let activeDepartment = "vegetables";
 let query = "";
 let cart = readCart();
 let token = localStorage.getItem("vegz_token") || "";
@@ -39,6 +40,11 @@ function escapeHtml(value) {
 }
 function currency(value) { return money.format(Number(value || 0)); }
 function iconFor(product) { return productIcons[product.slug] || "🥦"; }
+function departmentFor(product) {
+  const category = String(product.category || "").trim().toLowerCase();
+  return category === "grocery" || category === "spices" ? "grocery" : "vegetables";
+}
+function departmentLabel(department) { return department === "grocery" ? "Grocery" : "Vegetables"; }
 function itemCount() { return Object.values(cart).reduce((sum, qty) => sum + Number(qty || 0), 0); }
 function cartProducts() {
   return Object.entries(cart).map(([id, qty]) => {
@@ -106,7 +112,8 @@ async function loadProducts() {
 }
 
 function renderCategories() {
-  const categories = ["all"].concat(Array.from(new Set(products.map((product) => product.category))).filter(Boolean));
+  const departmentProducts = products.filter((product) => departmentFor(product) === activeDepartment);
+  const categories = ["all"].concat(Array.from(new Set(departmentProducts.map((product) => product.category))).filter(Boolean));
   $("#categoryFilters").innerHTML = categories.map((category) => {
     const active = activeCategory === category ? " selected" : "";
     const label = category === "all" ? "All items" : category;
@@ -117,9 +124,10 @@ function renderCategories() {
 
 function renderProducts() {
   const filtered = products.filter((product) => {
+    const matchesDepartment = departmentFor(product) === activeDepartment;
     const matchesCategory = activeCategory === "all" || product.category === activeCategory;
     const haystack = (product.name + " " + product.category + " " + product.description).toLowerCase();
-    return matchesCategory && haystack.includes(query.toLowerCase());
+    return matchesDepartment && matchesCategory && haystack.includes(query.toLowerCase());
   });
   if (!filtered.length) {
     $("#productGrid").innerHTML = '<div class="empty-results"><span>🌿</span><strong>No fresh picks found.</strong><p>Try another search or category.</p><button class="flow-back" id="clearSearchButton" type="button">Clear filters</button></div>';
@@ -184,6 +192,12 @@ function renderCart() {
 function addToCart(id) {
   const product = products.find((item) => String(item.id) === String(id));
   if (!product) return;
+  const cartDepartments = new Set(cartProducts().map((item) => departmentFor(item.product)));
+  const nextDepartment = departmentFor(product);
+  if (cartDepartments.size && !cartDepartments.has(nextDepartment)) {
+    toast("Vegetables and grocery have separate suppliers and deliveries. Please place or clear your " + Array.from(cartDepartments).map(departmentLabel).join(" + ") + " basket before adding " + departmentLabel(nextDepartment).toLowerCase() + " items.", "error");
+    return;
+  }
   const current = Number(cart[id] || 0);
   if (current >= Math.min(99, Number(product.stock_qty || 99))) {
     toast("That is all the available stock for " + product.name + ".", "error");
@@ -485,6 +499,19 @@ document.addEventListener("click", (event) => {
   if (add) { addToCart(add.dataset.add); return; }
   if (minus) { decreaseCart(minus.dataset.minus); return; }
   if (remove) { removeCart(remove.dataset.remove); return; }
+  const department = event.target.closest("[data-department]");
+  if (department) {
+    activeDepartment = department.dataset.department;
+    activeCategory = "all";
+    $("#departmentTabs [data-department]").forEach((button) => {
+      const selected = button.dataset.department === activeDepartment;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    renderCategories();
+    renderProducts();
+    return;
+  }
   if (category) {
     activeCategory = category.dataset.category;
     renderCategories();
