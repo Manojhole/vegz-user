@@ -108,7 +108,247 @@ SEED_PRODUCTS = [
         "description": "Bright green capsicum with a clean, crisp bite.",
         "image_url": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("60.00"), "stock_qty": 55,
+    },,
+    {
+        "name": "Cucumber", "slug": "cucumber", "category": "Fresh picks",
+        "description": "Crisp cucumbers for salads.",
+        "image_url": "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("35.00"), "stock_qty": 35,
     },
+    {
+        "name": "Cauliflower", "slug": "cauliflower", "category": "Fresh picks",
+        "description": "Fresh florets for curries.",
+        "image_url": "https://images.unsplash.com/photo-1568584711075-3d021a7c3ca3?auto=format&fit=crop&w=700&q=85",
+        "unit": "pc", "price": Decimal("40.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Brinjal", "slug": "brinjal", "category": "Fresh picks",
+        "description": "Glossy brinjals for home cooking.",
+        "image_url": "https://images.unsplash.com/photo-1659261200848-1f3c2f8a0f19?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("42.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Lady Finger", "slug": "lady-finger", "category": "Fresh picks",
+        "description": "Tender okra for Indian cooking.",
+        "image_url": "https://images.unsplash.com/photo-1635350673954-9a2f5f2e5e9a?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("48.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Green Peas", "slug": "green-peas", "category": "Fresh picks",
+        "description": "Sweet peas for curries and snacks.",
+        "image_url": "https://images.unsplash.com/photo-1587735243615-c03f25a-aff15?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("80.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Beetroot", "slug": "beetroot", "category": "Fresh picks",
+        "description": "Earthy beetroot for salads and juices.",
+        "image_url": "https://images.unsplash.com/photo-1607305387299-a3d9611cd469?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("38.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Radish", "slug": "radish", "category": "Fresh picks",
+        "description": "Fresh radish with a peppery crunch.",
+        "image_url": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("30.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Pumpkin", "slug": "pumpkin", "category": "Fresh picks",
+        "description": "Sweet pumpkin for comforting meals.",
+        "image_url": "https://images.unsplash.com/photo-1570586437263-ab629fccc818?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("32.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Bitter Gourd", "slug": "bitter-gourd", "category": "Fresh picks",
+        "description": "Fresh karela for traditional recipes.",
+        "image_url": "https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("50.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Bottle Gourd", "slug": "bottle-gourd", "category": "Fresh picks",
+        "description": "Tender bottle gourd for light meals.",
+        "image_url": "https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85",
+        "unit": "pc", "price": Decimal("35.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Green Beans", "slug": "green-beans", "category": "Fresh picks",
+        "description": "Crisp beans for stir-fries and sabzi.",
+        "image_url": "https://images.unsplash.com/photo-1567375698348-5d9d5ae99de0?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("55.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Sweet Corn", "slug": "sweet-corn", "category": "Fresh picks",
+        "description": "Sweet corn for snacks and soups.",
+        "image_url": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=700&q=85",
+        "unit": "pc", "price": Decimal("25.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Garlic", "slug": "garlic", "category": "Daily essentials",
+        "description": "Aromatic garlic for everyday flavour.",
+        "image_url": "https://images.unsplash.com/photo-1615477550927-6ec8445fc5b5?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("120.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Ginger", "slug": "ginger", "category": "Daily essentials",
+        "description": "Fresh ginger root for chai and curries.",
+        "image_url": "https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("90.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Green Chilli", "slug": "green-chilli", "category": "Daily essentials",
+        "description": "Green chillies to add a little heat.",
+        "image_url": "https://images.unsplash.com/photo-1588252303782-cb80119res?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("60.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Coriander", "slug": "coriander", "category": "Leafy greens",
+        "description": "Fragrant coriander bunches.",
+        "image_url": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=700&q=85",
+        "unit": "bunch", "price": Decimal("15.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Mint", "slug": "mint", "category": "Leafy greens",
+        "description": "Fresh mint for chutneys and drinks.",
+        "image_url": "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?auto=format&fit=crop&w=700&q=85",
+        "unit": "bunch", "price": Decimal("15.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Spring Onion", "slug": "spring-onion", "category": "Leafy greens",
+        "description": "Spring onions for noodles and stir-fries.",
+        "image_url": "https://images.unsplash.com/photo-1587049633312-76c8eb07bbc5?auto=format&fit=crop&w=700&q=85",
+        "unit": "bunch", "price": Decimal("25.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Red Bell Pepper", "slug": "red-bell-pepper", "category": "Fresh picks",
+        "description": "Sweet red pepper for colourful meals.",
+        "image_url": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("90.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Lettuce", "slug": "lettuce", "category": "Leafy greens",
+        "description": "Crisp lettuce for salads and wraps.",
+        "image_url": "https://images.unsplash.com/photo-1556801712-76c8eb07bbc9?auto=format&fit=crop&w=700&q=85",
+        "unit": "pc", "price": Decimal("45.00"), "stock_qty": 35,
+    },
+    {
+        "name": "Basmati Rice", "slug": "basmati-rice", "category": "Grocery",
+        "description": "Fragrant rice for biryani and pulao.",
+        "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("95.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Toor Dal", "slug": "toor-dal", "category": "Grocery",
+        "description": "Split pigeon peas for everyday dal.",
+        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("145.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Moong Dal", "slug": "moong-dal", "category": "Grocery",
+        "description": "Moong dal for khichdi and soups.",
+        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("125.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Chana Dal", "slug": "chana-dal", "category": "Grocery",
+        "description": "Chana dal for curries and snacks.",
+        "image_url": "https://images.unsplash.com/photo-1515543904379-3d757d7a5f5f?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("95.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Wheat Flour", "slug": "wheat-flour", "category": "Grocery",
+        "description": "Everyday atta for soft rotis.",
+        "image_url": "https://images.unsplash.com/photo-1627485937980-221c88ac04f9?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("48.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Besan", "slug": "besan", "category": "Grocery",
+        "description": "Gram flour for pakoras and chilla.",
+        "image_url": "https://images.unsplash.com/photo-1627485937980-221c88ac04f9?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("85.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Cooking Oil", "slug": "cooking-oil", "category": "Grocery",
+        "description": "Kitchen oil for daily meal preparation.",
+        "image_url": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=700&q=85",
+        "unit": "L", "price": Decimal("145.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Sugar", "slug": "sugar", "category": "Grocery",
+        "description": "Fine sugar for tea and baking.",
+        "image_url": "https://images.unsplash.com/photo-1581441363689-1f3c3c414635?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("48.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Salt", "slug": "salt", "category": "Grocery",
+        "description": "Essential everyday cooking salt.",
+        "image_url": "https://images.unsplash.com/photo-1518110925495-5fe2fda0442f?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("22.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Tea Powder", "slug": "tea-powder", "category": "Grocery",
+        "description": "Everyday tea for your morning cup.",
+        "image_url": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=700&q=85",
+        "unit": "250 g", "price": Decimal("120.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Coffee", "slug": "coffee", "category": "Grocery",
+        "description": "Rich coffee for your daily brew.",
+        "image_url": "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=700&q=85",
+        "unit": "200 g", "price": Decimal("160.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Turmeric Powder", "slug": "turmeric-powder", "category": "Spices",
+        "description": "Golden turmeric powder for cooking.",
+        "image_url": "https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85",
+        "unit": "100 g", "price": Decimal("35.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Red Chilli Powder", "slug": "red-chilli-powder", "category": "Spices",
+        "description": "Ground chilli for warmth and colour.",
+        "image_url": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=700&q=85",
+        "unit": "100 g", "price": Decimal("42.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Cumin Seeds", "slug": "cumin-seeds", "category": "Spices",
+        "description": "Aromatic cumin for seasoning.",
+        "image_url": "https://images.unsplash.com/photo-1599909533605-f2c5a5a4c2ca?auto=format&fit=crop&w=700&q=85",
+        "unit": "100 g", "price": Decimal("38.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Mustard Seeds", "slug": "mustard-seeds", "category": "Spices",
+        "description": "Mustard seeds for tadka and pickles.",
+        "image_url": "https://images.unsplash.com/photo-1603905179139-2e0a8c1e5f68?auto=format&fit=crop&w=700&q=85",
+        "unit": "100 g", "price": Decimal("28.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Poha", "slug": "poha", "category": "Grocery",
+        "description": "Flattened rice for quick breakfasts.",
+        "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("65.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Oats", "slug": "oats", "category": "Grocery",
+        "description": "Rolled oats for breakfast and baking.",
+        "image_url": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=700&q=85",
+        "unit": "500 g", "price": Decimal("85.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Peanuts", "slug": "peanuts", "category": "Grocery",
+        "description": "Crunchy peanuts for snacks and chutneys.",
+        "image_url": "https://images.unsplash.com/photo-1567892737950-30c4db37cd89?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("140.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Jaggery", "slug": "jaggery", "category": "Grocery",
+        "description": "Traditional jaggery for sweets and drinks.",
+        "image_url": "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=700&q=85",
+        "unit": "kg", "price": Decimal("70.00"), "stock_qty": 60,
+    },
+    {
+        "name": "Pasta", "slug": "pasta", "category": "Grocery",
+        "description": "Pantry pasta for quick family meals.",
+        "image_url": "https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=700&q=85",
+        "unit": "500 g", "price": Decimal("75.00"), "stock_qty": 60,
+    }
 ]
 
 Base.metadata.create_all(bind=engine)
@@ -119,9 +359,10 @@ def seed_products() -> None:
 
     db = SessionLocal()
     try:
-        existing = db.scalar(select(Product.id).limit(1))
-        if existing is None:
-            db.add_all([Product(**item) for item in SEED_PRODUCTS])
+        existing_slugs = set(db.scalars(select(Product.slug)).all())
+        missing = [Product(**item) for item in SEED_PRODUCTS if item["slug"] not in existing_slugs]
+        if missing:
+            db.add_all(missing)
             db.commit()
     finally:
         db.close()
