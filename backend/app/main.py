@@ -572,6 +572,9 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     if address is None:
         raise HTTPException(status_code=404, detail="Choose a saved delivery address.")
 
+    # Enforce one supplier department per order; vegetables and grocery use separate fulfilment.
+    # Grocery/spices are the grocery department; other seeded categories are vegetables.
+    # Validate from database records, not from client-provided department labels.
     # Merge duplicate product rows and validate quantities before changing stock.
     quantities: dict[int, int] = {}
     for item in payload.items:
@@ -587,6 +590,16 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
         if product.stock_qty < quantity:
             raise HTTPException(status_code=409, detail=f"Only {product.stock_qty} {product.unit} of {product.name} remain.")
         products[product_id] = product
+
+    departments = {
+        "grocery" if product.category.strip().lower() in {"grocery", "spices"} else "vegetables"
+        for product in products.values()
+    }
+    if len(departments) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Vegetables and grocery have separate suppliers and deliveries. Place separate orders for each department.",
+        )
 
     subtotal = Decimal("0.00")
     lines: list[dict] = []
