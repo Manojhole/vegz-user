@@ -19,19 +19,21 @@ Docker Compose starts MySQL 8.4 and the monolithic app. Run:
 
 Then open http://localhost:8000. API health is at http://localhost:8000/api/health and API documentation is at http://localhost:8000/docs. The Compose credentials and secrets are for local development only; replace them before any shared environment.
 
-## Run locally with Python
+## Run locally with Python (SQLite; no MySQL required)
 
-Python 3.11+ is recommended.
+Python 3.11+ is recommended. Run these commands from the repository root:
 
-    cd backend
-    python -m venv .venv
-    # Windows: .venv\Scripts\activate
+    python3 -m venv .venv
+    # macOS/Linux
     source .venv/bin/activate
-    pip install -r requirements.txt
-    cp .env.example .env
-    uvicorn app.main:app --reload
+    # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+    pip install -r backend/requirements.txt
+    cp backend/.env.example .env
+    uvicorn backend.app.main:app --reload --port 8003
 
-The .env.example uses MySQL. For a quick SQLite run, set DATABASE_URL=sqlite:///./vegz.db in your local .env. When using MySQL, make sure the database exists and the configured account has table-creation permissions.
+The example environment uses SQLite, so you do not need to install or start MySQL. The local database file `vegz.db` is created in the directory from which Uvicorn is started. Open the customer app at http://localhost:8003, API docs at http://localhost:8003/docs, and health check at http://localhost:8003/api/health.
+
+If you prefer MySQL, set `DATABASE_URL` in your root `.env` to a valid MySQL SQLAlchemy URL and ensure the server is running, the database exists, and the configured account has table-creation permissions. A refused connection to `127.0.0.1:3306` means no MySQL server is accepting connections there.
 
 ## Android and web
 
