@@ -147,7 +147,7 @@ function renderProducts() {
         ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
         : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>') + '</div></div></article>';
   }).join("");
-  $("#productGrid .product-image img").forEach((image) => {
+  $$("#productGrid .product-image img").forEach((image) => {
     image.addEventListener("error", () => image.parentElement.classList.add("image-fallback"), { once: true });
     if (image.complete && image.naturalWidth === 0) image.parentElement.classList.add("image-fallback");
   });
