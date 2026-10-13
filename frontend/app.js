@@ -4,7 +4,7 @@ let STANDARD_DELIVERY_FEE = 25;
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const productIcons = {
   tomato: "🍅", potato: "🥔", "red-onion": "🧅", carrot: "🥕",
-  spinach: "🥬", broccoli: "🥦", cabbage: "🥬", "green-capsicum": "🫑"
+  spinach: "🥬", broccoli: "🥦", cabbage: "🥬", "green-capsicum": "🫑", cucumber: "🥒", cauliflower: "🥦", brinjal: "🍆", "lady-finger": "🥬", "green-peas": "🫛", beetroot: "🫜", radish: "🥕", pumpkin: "🎃", "bitter-gourd": "🥒", "bottle-gourd": "🥒", "green-beans": "🫛", "sweet-corn": "🌽", garlic: "🧄", ginger: "🫚", "green-chilli": "🌶️", coriander: "🌿", mint: "🌿", "spring-onion": "🧅", "red-bell-pepper": "🫑", lettuce: "🥬", "basmati-rice": "🍚", "toor-dal": "🫘", "moong-dal": "🫘", "chana-dal": "🫘", "wheat-flour": "🌾", besan: "🌾", "cooking-oil": "🫒", sugar: "🧂", salt: "🧂", "tea-powder": "🍵", coffee: "☕", "turmeric-powder": "🟡", "red-chilli-powder": "🌶️", "cumin-seeds": "🌿", "mustard-seeds": "🌿", poha: "🍚", oats: "🥣", peanuts: "🥜", jaggery: "🍯", pasta: "🍝"
 };
 
 let products = [];
@@ -109,7 +109,7 @@ function renderCategories() {
   const categories = ["all"].concat(Array.from(new Set(products.map((product) => product.category))).filter(Boolean));
   $("#categoryFilters").innerHTML = categories.map((category) => {
     const active = activeCategory === category ? " selected" : "";
-    const label = category === "all" ? "All vegetables" : category;
+    const label = category === "all" ? "All items" : category;
     return '<button class="category-chip' + active + '" data-category="' + escapeHtml(category) + '" type="button">' +
       escapeHtml(label) + (category === "all" ? ' <span>↗</span>' : "") + '</button>';
   }).join("");
