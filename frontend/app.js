@@ -63,10 +63,17 @@ function getDeliveryFee() {
 function toast(message, type) {
   const region = $("#toastRegion");
   const node = document.createElement("div");
-  node.className = "toast" + (type === "error" ? " error" : "");
-  node.textContent = message;
+  node.className = "toast" + (type === "error" ? " error supplier-alert" : "");
+  if (type === "error" && message.startsWith("SEPARATE SUPPLIERS & DELIVERIES")) {
+    const detail = message.replace(/^SEPARATE SUPPLIERS & DELIVERIES\\n?/, "");
+    node.setAttribute("role", "alert");
+    node.innerHTML = '<div class="supplier-alert-art" aria-hidden="true"><span class="supplier-orbit orbit-left">🥬</span><span class="supplier-alert-link">↔</span><span class="supplier-orbit orbit-right">🛒</span><span class="supplier-alert-spark">✦</span></div><div class="supplier-alert-copy"><strong class="supplier-alert-title">Two shops. Two deliveries.</strong><p>' + escapeHtml(detail) + '</p><div class="supplier-alert-actions"><span>🥬 Vegetable shop</span><span>🛒 Grocery shop</span></div></div><button class="supplier-alert-close" type="button" aria-label="Dismiss message">×</button>';
+    node.querySelector(".supplier-alert-close").addEventListener("click", () => node.remove());
+  } else {
+    node.textContent = message;
+  }
   region.appendChild(node);
-  window.setTimeout(() => node.remove(), 3800);
+  window.setTimeout(() => node.remove(), type === "error" ? 6500 : 3800);
 }
 async function request(path, options) {
   const settings = Object.assign({ method: "GET", headers: {} }, options || {});
