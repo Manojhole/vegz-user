@@ -434,3 +434,10 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 @keyframes supplier-sparkle { 0%,100% { opacity:.45; transform:scale(.8) rotate(0); } 50% { opacity:1; transform:scale(1.2) rotate(22deg); } }
 @media(max-width:480px) { .toast.supplier-alert { grid-template-columns:76px minmax(0,1fr); gap:10px; padding:13px 34px 13px 10px; border-radius:16px; } .supplier-alert-art { min-height:76px; } .supplier-orbit { width:34px; height:34px; font-size:20px; } .supplier-alert-link { font-size:14px; } .supplier-alert-title { font-size:14px; } .supplier-alert-copy p { font-size:12px; } .supplier-alert-actions span { font-size:9px; } }
 @media(prefers-reduced-motion:reduce) { .supplier-alert,.supplier-orbit,.supplier-alert-link,.supplier-alert-spark { animation:none!important; } }
+
+.language-picker{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dfe7d7;border-radius:12px;background:#fffefa;color:#31563a}
+.language-picker select{max-width:100px;border:0;outline:0;background:transparent;color:inherit;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+html[lang="kn"] body{font-family:"Noto Sans Kannada","Nirmala UI","Tunga",system-ui,sans-serif}
+html[lang="kn"] .hero h1,html[lang="kn"] .section-heading h2{letter-spacing:0;line-height:1.4}
+html[lang="kn"] .product-name{line-height:1.5}
+@media(max-width:700px){.language-picker{padding:6px}.language-picker select{max-width:74px;font-size:11px}}
