@@ -2,6 +2,30 @@ const API = "";
 let FREE_DELIVERY_MINIMUM = 499;
 let STANDARD_DELIVERY_FEE = 25;
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+const LANG_KEY = "vegz_language";
+const LANG = {
+  en: { shop:"Shop", promise:"Our promise", orders:"Your orders", hero:"Fresh from the farm.", hero2:"And pantry to your door.", heroDesc:"Fresh vegetables and everyday grocery essentials, honest prices, and one less thing to worry about today.", shopFresh:"Shop fresh picks", title:"Today's fresh picks", subtitle:"A little green goodness goes a long way.", search:"Find vegetables, groceries...", vegetables:"Vegetables", vegSub:"Fresh produce · Vegetable supplier", grocery:"Grocery", grocerySub:"Pantry essentials · Grocery supplier", departmentNote:"Vegetable orders are prepared and delivered separately from grocery orders.", allItems:"All items", basket:"YOUR BASKET", cartTitle:"Good things inside", emptyCart:"Your basket is taking a nap", emptyCartDesc:"Add some fresh favourites and they'll show up here.", subtotal:"Subtotal", delivery:"Delivery", checkout:"Continue to checkout", category:{"Daily essentials":"Daily essentials","Fresh picks":"Fresh picks","Leafy greens":"Leafy greens","Grocery":"Grocery","Spices":"Spices"}},
+  kn: { shop:"ಖರೀದಿ", promise:"ನಮ್ಮ ಭರವಸೆ", orders:"ನಿಮ್ಮ ಆರ್ಡರ್‌ಗಳು", hero:"ತೋಟದಿಂದ ತಾಜಾ.", hero2:"ದಿನಸಿ ನಿಮ್ಮ ಮನೆ ಬಾಗಿಲಿಗೆ.", heroDesc:"ತಾಜಾ ತರಕಾರಿಗಳು ಮತ್ತು ದಿನನಿತ್ಯದ ದಿನಸಿ ಸಾಮಗ್ರಿಗಳು, ನ್ಯಾಯವಾದ ಬೆಲೆಗಳಲ್ಲಿ.", shopFresh:"ತಾಜಾ ವಸ್ತುಗಳನ್ನು ಖರೀದಿಸಿ", title:"ಇಂದಿನ ತಾಜಾ ಆಯ್ಕೆಗಳು", subtitle:"ಸ್ವಲ್ಪ ತಾಜಾತನ ನಿಮ್ಮ ದಿನವನ್ನು ಉತ್ತಮಗೊಳಿಸುತ್ತದೆ.", search:"ತರಕಾರಿ, ದಿನಸಿ ಹುಡುಕಿ...", vegetables:"ತರಕಾರಿಗಳು", vegSub:"ತಾಜಾ ತರಕಾರಿ · ತರಕಾರಿ ಪೂರೈಕೆದಾರ", grocery:"ದಿನಸಿ", grocerySub:"ದಿನಸಿ ಸಾಮಗ್ರಿಗಳು · ದಿನಸಿ ಪೂರೈಕೆದಾರ", departmentNote:"ತರಕಾರಿ ಮತ್ತು ದಿನಸಿ ಆರ್ಡರ್‌ಗಳನ್ನು ಪ್ರತ್ಯೇಕವಾಗಿ ಪೂರೈಸಿ ಡೆಲಿವರಿ ಮಾಡಲಾಗುತ್ತದೆ.", allItems:"ಎಲ್ಲಾ ವಸ್ತುಗಳು", basket:"ನಿಮ್ಮ ಬುಟ್ಟಿ", cartTitle:"ನಿಮ್ಮ ಆಯ್ಕೆಗಳು", emptyCart:"ನಿಮ್ಮ ಬುಟ್ಟಿ ಖಾಲಿಯಾಗಿದೆ", emptyCartDesc:"ವಸ್ತುಗಳನ್ನು ಸೇರಿಸಿದಾಗ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.", subtotal:"ಉಪಮೊತ್ತ", delivery:"ಡೆಲಿವರಿ", checkout:"ಚೆಕ್‌ಔಟ್ ಮುಂದುವರಿಸಿ", category:{"Daily essentials":"ದಿನನಿತ್ಯದ ಅಗತ್ಯಗಳು","Fresh picks":"ತಾಜಾ ಆಯ್ಕೆಗಳು","Leafy greens":"ಸೊಪ್ಪುಗಳು","Grocery":"ದಿನಸಿ","Spices":"ಮಸಾಲೆಗಳು"}, products:{"Tomato":"ಟೊಮೇಟೊ","Potato":"ಆಲೂಗಡ್ಡೆ","Red Onion":"ಕೆಂಪು ಈರುಳ್ಳಿ","Carrot":"ಕ್ಯಾರೆಟ್","Spinach":"ಪಾಲಕ್ ಸೊಪ್ಪು","Cabbage":"ಎಲೆಕೋಸು","Cucumber":"ಸೌತೆಕಾಯಿ","Cauliflower":"ಹೂಕೋಸು","Brinjal":"ಬದನೆಕಾಯಿ","Lady Finger":"ಬೆಂಡೆಕಾಯಿ","Green Peas":"ಹಸಿರು ಬಟಾಣಿ","Beetroot":"ಬೀಟ್ರೂಟ್","Pumpkin":"ಕುಂಬಳಕಾಯಿ","Bitter Gourd":"ಹಾಗಲಕಾಯಿ","Bottle Gourd":"ಸೋರೆಕಾಯಿ","Garlic":"ಬೆಳ್ಳುಳ್ಳಿ","Ginger":"ಶುಂಠಿ","Green Chilli":"ಹಸಿಮೆಣಸಿನಕಾಯಿ","Coriander":"ಕೊತ್ತಂಬರಿ ಸೊಪ್ಪು","Mint":"ಪುದೀನಾ","Basmati Rice":"ಬಾಸ್ಮತಿ ಅಕ್ಕಿ","Toor Dal":"ತೊಗರಿ ಬೇಳೆ","Moong Dal":"ಹೆಸರು ಬೇಳೆ","Chana Dal":"ಕಡಲೆ ಬೇಳೆ","Wheat Flour":"ಗೋಧಿ ಹಿಟ್ಟು","Besan":"ಕಡಲೆ ಹಿಟ್ಟು","Cooking Oil":"ಅಡುಗೆ ಎಣ್ಣೆ","Sugar":"ಸಕ್ಕರೆ","Salt":"ಉಪ್ಪು","Tea Powder":"ಚಹಾ ಪುಡಿ","Coffee":"ಕಾಫಿ","Poha":"ಅವಲಕ್ಕಿ","Oats":"ಓಟ್ಸ್","Peanuts":"ಕಡಲೆಕಾಯಿ","Jaggery":"ಬೆಲ್ಲ","Pasta":"ಪಾಸ್ತಾ"}}
+};
+let currentLanguage = "en";
+function tr(key) { return (LANG[currentLanguage] && LANG[currentLanguage][key]) || LANG.en[key] || key; }
+function localizedName(name) { return (LANG[currentLanguage].products || {})[name] || name; }
+function applyLanguage(lang, persist) {
+  currentLanguage = LANG[lang] ? lang : "en";
+  document.documentElement.lang = currentLanguage;
+  const picker = $("#languageSelect"); if (picker) picker.value = currentLanguage;
+  if (persist) { try { localStorage.setItem(LANG_KEY, currentLanguage); } catch (_) {} }
+  const selectors = {".nav-link.active":"shop",".nav-link[href='#promise']":"promise","#ordersButton":"orders",".section-heading h2":"title",".section-subtitle":"subtitle","#departmentNote":"departmentNote",".department-tab[data-department='vegetables'] strong":"vegetables",".department-tab[data-department='vegetables'] small":"vegSub",".department-tab[data-department='grocery'] strong":"grocery",".department-tab[data-department='grocery'] small":"grocerySub",".cart-eyebrow":"basket","#cartTitle":"cartTitle",".summary-line:nth-child(1) span":"subtotal",".summary-line:nth-child(2) span":"delivery"};
+  Object.entries(selectors).forEach(([selector,key]) => { const el = $(selector); if (el) el.textContent = tr(key); });
+  const hero = $("#heroTitle"); if (hero) hero.innerHTML = escapeHtml(tr("hero")) + "<br><span>" + escapeHtml(tr("hero2")) + "</span>";
+  const desc = $(".hero-content > p"); if (desc) desc.textContent = tr("heroDesc");
+  const cta = $(".primary-cta"); if (cta) { const arrow=cta.querySelector("span"); cta.textContent=tr("shopFresh")+" "; if(arrow) cta.appendChild(arrow); }
+  const search=$("#searchInput"); if(search) search.placeholder=tr("search");
+  const checkout=$("#checkoutButton"); if(checkout) { const arrow=checkout.querySelector("span"); checkout.textContent=tr("checkout")+" "; if(arrow) checkout.appendChild(arrow); }
+  renderCategories(); renderProducts(); renderCart();
+}
+
 const productIcons = {
   tomato: "🍅", potato: "🥔", "red-onion": "🧅", carrot: "🥕",
   spinach: "🥬", broccoli: "🥦", cabbage: "🥬", "green-capsicum": "🫑", cucumber: "🥒", cauliflower: "🥦", brinjal: "🍆", "lady-finger": "🥬", "green-peas": "🫛", beetroot: "🫜", radish: "🥕", pumpkin: "🎃", "bitter-gourd": "🥒", "bottle-gourd": "🥒", "green-beans": "🫛", "sweet-corn": "🌽", garlic: "🧄", ginger: "🫚", "green-chilli": "🌶️", coriander: "🌿", mint: "🌿", "spring-onion": "🧅", "red-bell-pepper": "🫑", lettuce: "🥬", "basmati-rice": "🍚", "toor-dal": "🫘", "moong-dal": "🫘", "chana-dal": "🫘", "wheat-flour": "🌾", besan: "🌾", "cooking-oil": "🫒", sugar: "🧂", salt: "🧂", "tea-powder": "🍵", coffee: "☕", "turmeric-powder": "🟡", "red-chilli-powder": "🌶️", "cumin-seeds": "🌿", "mustard-seeds": "🌿", poha: "🍚", oats: "🥣", peanuts: "🥜", jaggery: "🍯", pasta: "🍝"
@@ -123,7 +147,7 @@ function renderCategories() {
   const categories = ["all"].concat(Array.from(new Set(departmentProducts.map((product) => product.category))).filter(Boolean));
   $("#categoryFilters").innerHTML = categories.map((category) => {
     const active = activeCategory === category ? " selected" : "";
-    const label = category === "all" ? "All items" : category;
+    const label = category === "all" ? tr("allItems") : ((LANG[currentLanguage].category || {})[category] || category);
     return '<button class="category-chip' + active + '" data-category="' + escapeHtml(category) + '" type="button">' +
       escapeHtml(label) + (category === "all" ? ' <span>↗</span>' : "") + '</button>';
   }).join("");
@@ -143,7 +167,7 @@ function renderProducts() {
   $("#productGrid").innerHTML = filtered.map((product, index) => {
     const qty = Number(cart[product.id] || 0);
     const image = escapeHtml(product.image_url || "");
-    const name = escapeHtml(product.name);
+    const name = escapeHtml(localizedName(product.name));
     const imageClass = image ? "product-image" : "product-image image-fallback";
     const slug = escapeHtml(product.slug);
     return '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
@@ -566,6 +590,9 @@ document.addEventListener("keydown", (event) => {
 });
 $("#yearLabel").textContent = String(new Date().getFullYear());
 
+const savedLanguage = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return null; } })();
+applyLanguage(savedLanguage || (String(navigator.language || "").toLowerCase().startsWith("kn") ? "kn" : "en"), false);
+$("#languageSelect")?.addEventListener("change", event => applyLanguage(event.target.value, true));
 loadProducts();
 if (token) {
   request("/api/me").then((user) => { currentUser = user; }).catch(() => { token = ""; });
