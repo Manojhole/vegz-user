@@ -108,7 +108,7 @@ SEED_PRODUCTS = [
         "description": "Bright green capsicum with a clean, crisp bite.",
         "image_url": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85",
         "unit": "kg", "price": Decimal("60.00"), "stock_qty": 55,
-    },,
+    },
     {
         "name": "Cucumber", "slug": "cucumber", "category": "Fresh picks",
         "description": "Crisp cucumbers for salads.",
