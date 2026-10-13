@@ -21,7 +21,7 @@ from .schemas import (
 )
 
 load_dotenv()
-APP_ENV = os.getenv("APP_ENV", "development").lower()
+APP_ENV = os.getenv("APP_ENV", "production").lower()
 JWT_SECRET = os.getenv("JWT_SECRET", "local-dev-only-change-this-secret")
 OTP_SECRET = os.getenv("OTP_SECRET", "local-dev-only-otp-secret")
 JWT_ALGORITHM = "HS256"
