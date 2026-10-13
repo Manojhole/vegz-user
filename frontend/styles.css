@@ -412,3 +412,25 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .product-image.image-fallback { border:1px dashed #d2ddc8; }
 .product-image.image-fallback .product-emoji { display:grid; place-items:center; width:100%; height:100%; font-size:clamp(48px,8vw,76px); background:radial-gradient(circle at 50% 40%,#fffefa,#e7efdf); }
 @media(prefers-reduced-motion:reduce) { .card-quantity-button,.product-card,.toast.error { animation:none!important; transition:none!important; } }
+
+/* Illustrated, animated notice for separate Vegz suppliers */
+.toast-region:has(.supplier-alert) { width:min(calc(100% - 28px),560px); }
+.toast.supplier-alert { position:relative; display:grid; grid-template-columns:112px minmax(0,1fr); align-items:center; gap:15px; overflow:hidden; max-width:560px; padding:18px 42px 18px 16px; border:1px solid #e7b77f; border-radius:20px; background:linear-gradient(135deg,#fffaf0 0%,#fff4e4 52%,#f2f8e9 100%); color:#354b36; box-shadow:0 22px 65px rgba(60,67,37,.24); white-space:normal; animation:supplier-alert-enter .42s cubic-bezier(.18,.8,.25,1.15) both; }
+.toast.supplier-alert::before { display:none; }
+.supplier-alert-art { position:relative; display:flex; align-items:center; justify-content:center; gap:0; min-height:92px; border-radius:16px; background:rgba(255,255,255,.7); border:1px solid rgba(210,222,194,.9); }
+.supplier-orbit { display:grid; place-items:center; width:48px; height:48px; border-radius:50%; background:#edf5e6; font-size:27px; box-shadow:0 5px 14px rgba(48,76,38,.12); animation:supplier-float 2.3s ease-in-out infinite; }
+.supplier-orbit.orbit-right { background:#fff0db; animation-delay:.25s; }
+.supplier-alert-link { z-index:1; margin:0 -4px; color:#d88942; font-size:19px; font-weight:900; animation:supplier-link-pulse 1.25s ease-in-out infinite; }
+.supplier-alert-spark { position:absolute; top:8px; right:10px; color:#d99b3d; font-size:17px; animation:supplier-sparkle 1.8s ease-in-out infinite; }
+.supplier-alert-title { display:block; margin:0 0 6px; color:#293f2d; font-size:16px; font-weight:900; line-height:1.25; }
+.supplier-alert-copy p { margin:0; color:#59664f; font-size:13px; font-weight:600; line-height:1.5; }
+.supplier-alert-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; }
+.supplier-alert-actions span { display:inline-flex; align-items:center; gap:4px; padding:5px 8px; border:1px solid #dce7d2; border-radius:999px; background:#fffefa; color:#496044; font-size:10px; font-weight:800; }
+.supplier-alert-close { position:absolute; top:8px; right:9px; display:grid; place-items:center; width:27px; height:27px; border:0; border-radius:50%; background:rgba(255,255,255,.8); color:#6c6e5b; font-size:21px; cursor:pointer; transition:background .18s,transform .18s; }
+.supplier-alert-close:hover { background:#fff; transform:rotate(90deg); }
+@keyframes supplier-alert-enter { from { opacity:0; transform:translateY(18px) scale(.94); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes supplier-float { 0%,100% { transform:translateY(0) rotate(-4deg); } 50% { transform:translateY(-6px) rotate(4deg); } }
+@keyframes supplier-link-pulse { 0%,100% { opacity:.45; transform:scale(.9); } 50% { opacity:1; transform:scale(1.16); } }
+@keyframes supplier-sparkle { 0%,100% { opacity:.45; transform:scale(.8) rotate(0); } 50% { opacity:1; transform:scale(1.2) rotate(22deg); } }
+@media(max-width:480px) { .toast.supplier-alert { grid-template-columns:76px minmax(0,1fr); gap:10px; padding:13px 34px 13px 10px; border-radius:16px; } .supplier-alert-art { min-height:76px; } .supplier-orbit { width:34px; height:34px; font-size:20px; } .supplier-alert-link { font-size:14px; } .supplier-alert-title { font-size:14px; } .supplier-alert-copy p { font-size:12px; } .supplier-alert-actions span { font-size:9px; } }
+@media(prefers-reduced-motion:reduce) { .supplier-alert,.supplier-orbit,.supplier-alert-link,.supplier-alert-spark { animation:none!important; } }
