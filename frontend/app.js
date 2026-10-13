@@ -137,9 +137,10 @@ function renderProducts() {
     const qty = Number(cart[product.id] || 0);
     const image = escapeHtml(product.image_url || "");
     const name = escapeHtml(product.name);
+    const imageClass = image ? "product-image" : "product-image image-fallback";
     const slug = escapeHtml(product.slug);
     return '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
-      '<div class="product-image"><img src="' + image + '" alt="' + name + '" loading="lazy"><span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span></div>' +
+      '<div class="' + imageClass + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span></div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml(product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
       (qty
@@ -178,7 +179,7 @@ function renderCart() {
   } else {
     $("#cartItems").innerHTML = entries.map(({ product, quantity }) => {
       const image = escapeHtml(product.image_url || "");
-      return '<div class="cart-row"><div class="cart-thumb"><img src="' + image + '" alt=""><span aria-hidden="true">' + iconFor(product) + '</span></div>' +
+      return '<div class="cart-row"><div class="cart-thumb' + (image ? '' : ' fallback') + '">' + (image ? '<img src="' + image + '" alt="">' : '') + '<span aria-hidden="true">' + iconFor(product) + '</span></div>' +
         '<div><div class="cart-row-name">' + escapeHtml(product.name) + '</div><div class="cart-row-price">' + currency(product.price) + ' / ' + escapeHtml(product.unit) + '</div>' +
         '<div class="quantity-controls"><button type="button" data-minus="' + product.id + '" aria-label="Decrease ' + escapeHtml(product.name) + ' quantity">−</button><span>' + quantity + '</span><button type="button" data-add="' + product.id + '" aria-label="Increase ' + escapeHtml(product.name) + ' quantity">+</button></div></div>' +
         '<div class="cart-row-total">' + currency(Number(product.price) * quantity) + '<button class="remove-line" type="button" data-remove="' + product.id + '">Remove</button></div></div>';
@@ -210,6 +211,7 @@ function addToCart(id) {
   saveCart();
   renderProducts();
   renderCart();
+  toast(product.name + " added to your basket.");
 }
 function decreaseCart(id) {
   const qty = Number(cart[id] || 0);
