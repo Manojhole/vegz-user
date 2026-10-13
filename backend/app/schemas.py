@@ -30,7 +30,7 @@ class OtpRequest(BaseModel):
 
 class OtpVerify(BaseModel):
     phone: str = Field(min_length=10, max_length=16)
-    otp: str = Field(pattern=r"^\\d{6}$")
+    otp: str = Field(pattern=r"^\d{6}$")
 
 
 class UserOut(BaseModel):
