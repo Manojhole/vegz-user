@@ -441,3 +441,59 @@ html[lang="kn"] body{font-family:"Noto Sans Kannada","Nirmala UI","Tunga",system
 html[lang="kn"] .hero h1,html[lang="kn"] .section-heading h2{letter-spacing:0;line-height:1.4}
 html[lang="kn"] .product-name{line-height:1.5}
 @media(max-width:700px){.language-picker{padding:6px}.language-picker select{max-width:74px;font-size:11px}}
+
+
+/* Vegz motion polish: compact hero, subtle entrance choreography, and tactile cart feedback. */
+.hero {
+  min-height: 320px;
+  padding: 34px 52px 30px;
+  margin-bottom: 24px;
+}
+.hero-content { animation: hero-copy-in .7s cubic-bezier(.2,.7,.2,1) both; }
+.hero-art { height: 248px; animation: hero-art-in .9s .08s cubic-bezier(.2,.7,.2,1) both; }
+.hero h1 { font-size: clamp(30px, 3vw, 44px); margin-top: 13px; margin-bottom: 12px; }
+.hero-content > p { margin-bottom: 18px; }
+.hero-proof { margin-top: 19px; }
+@keyframes hero-copy-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hero-art-in {
+  from { opacity: 0; transform: translateX(14px) scale(.96); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes basket-bump {
+  0%,100% { transform: scale(1); }
+  35% { transform: scale(1.13); }
+  65% { transform: scale(.96); }
+}
+.cart-count.bump { animation: basket-bump .38s ease; }
+.product-card { animation: card-in .42s both; }
+.product-card:nth-child(3n + 1) { --card-stagger: 0ms; }
+.product-card:nth-child(3n + 2) { --card-stagger: 45ms; }
+.product-card:nth-child(3n) { --card-stagger: 90ms; }
+.product-card { animation-delay: var(--card-stagger, 0ms); }
+.product-card:focus-within { outline: 2px solid #74a57b; outline-offset: 3px; }
+.add-button, .card-quantity-button, .quantity-controls button, .cart-shortcut, .primary-cta, .flow-primary {
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+.add-button:active, .card-quantity-button:active, .quantity-controls button:active, .primary-cta:active, .flow-primary:active {
+  transform: scale(.94);
+}
+.cart-row { animation: cart-row-in .28s ease both; }
+@keyframes cart-row-in {
+  from { opacity: 0; transform: translateX(7px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 900px) {
+  .hero { min-height: 300px; padding: 30px 30px; }
+  .hero-art { height: 230px; }
+}
+@media (max-width: 640px) {
+  .hero { min-height: initial; padding: 28px 22px 20px; }
+  .hero-art { height: 195px; margin-bottom: -32px; }
+  .hero h1 { font-size: clamp(29px, 8vw, 39px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-content, .hero-art, .cart-count.bump, .cart-row { animation: none !important; }
+}
