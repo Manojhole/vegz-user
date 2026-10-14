@@ -910,6 +910,16 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
             address.line1, address.line2, address.landmark, address.city,
             address.state, address.postal_code,
         ] if part)
+        try:
+            availability = httpx.get(AGENT_SERVICE_URL + "/api/internal/availability",
+                headers={"Authorization": "Bearer " + DISPATCH_SHARED_SECRET}, timeout=8.0)
+            availability.raise_for_status()
+            if not availability.json().get("available"):
+                raise HTTPException(status_code=409, detail="No delivery agent is online right now. Please try again shortly.")
+        except HTTPException:
+            raise
+        except (httpx.HTTPError, ValueError) as exc:
+            raise HTTPException(status_code=502, detail="Could not check delivery availability. Please try again.") from exc
         for shop_id, shop_lines in grouped.items():
             body = {
                 "shop_id": shop_id, "customer_name": address.recipient_name,
