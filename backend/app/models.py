@@ -46,6 +46,11 @@ class Product(Base):
     price: Mapped[float] = mapped_column(Numeric(10, 2))
     stock_qty: Mapped[int] = mapped_column(Integer, default=100)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    shop_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    shop_name: Mapped[str] = mapped_column(String(120), default="")
+    shop_address: Mapped[str] = mapped_column(String(400), default="")
+    remote_product_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    image_urls: Mapped[str] = mapped_column(Text, default="[]")
 
 
 class Address(Base):
@@ -103,5 +108,7 @@ class OrderItem(Base):
     unit_price: Mapped[float] = mapped_column(Numeric(10, 2))
     quantity: Mapped[int] = mapped_column(Integer)
     line_total: Mapped[float] = mapped_column(Numeric(10, 2))
+    shop_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    shop_name: Mapped[str] = mapped_column(String(120), default="")
 
     order: Mapped["Order"] = relationship(back_populates="items")
