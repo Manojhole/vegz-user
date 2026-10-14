@@ -733,3 +733,5 @@ body {
 }
 
 .shop-group-heading{grid-column:1/-1;margin:18px 0 0;padding:12px 2px 4px;color:#176b45;font-size:20px;border-bottom:1px solid #e0e9e2}.product-photo-thumbs{display:flex;gap:5px;position:absolute;left:10px;bottom:10px;z-index:2}.product-photo-thumbs img{width:36px;height:30px;object-fit:cover;border:2px solid white;border-radius:7px;background:white}.product-image{position:relative}
+
+.product-shop-name{display:block;margin:4px 0 7px;color:#55735d;font-size:10px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
