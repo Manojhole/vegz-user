@@ -676,14 +676,14 @@ def list_products(category: str | None = Query(default=None, max_length=60), db:
             marketplace = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise HTTPException(status_code=502, detail="Could not load the live shop catalog. Check SHOP_SERVICE_URL.") from exc
+        db.query(Product).filter(Product.shop_id.is_not(None)).update({Product.is_active: False}, synchronize_session=False)
         for shop in marketplace:
             shop_id = int(shop["shop_id"])
             for remote in shop.get("products", []):
-                if category and category.lower() != "all" and remote.get("category") != category:
-                    continue
                 remote_id = int(remote["id"])
                 product = db.scalar(select(Product).where(Product.shop_id == shop_id, Product.remote_product_id == remote_id))
                 images = remote.get("image_urls") or ([remote["image_url"]] if remote.get("image_url") else [])
+                images = [image if str(image).startswith(("http://", "https://")) else SHOP_SERVICE_URL + str(image) for image in images]
                 values = {
                     "name": remote["name"], "slug": f"shop-{shop_id}-product-{remote_id}",
                     "category": remote.get("category", "Vegetables"), "description": remote.get("description", ""),
@@ -700,6 +700,8 @@ def list_products(category: str | None = Query(default=None, max_length=60), db:
                         setattr(product, key, value)
         db.commit()
         query = select(Product).where(Product.shop_id.is_not(None), Product.is_active.is_(True), Product.stock_qty > 0).order_by(Product.shop_name, Product.category, Product.name)
+        if category and category.lower() != "all":
+            query = query.where(Product.category == category)
     else:
         query = select(Product).where(Product.is_active.is_(True), Product.stock_qty > 0).order_by(Product.category, Product.name)
         if category and category.lower() != "all":
