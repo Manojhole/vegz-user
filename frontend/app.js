@@ -172,12 +172,17 @@ function renderProducts() {
   }
   $("#productGrid").innerHTML = filtered.map((product, index) => {
     const qty = Number(cart[product.id] || 0);
-    const image = escapeHtml(product.image_url || "");
+    const images = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])).slice(0, 3);
+    const image = escapeHtml(images[0] || "");
+    const gallery = images.length > 1 ? '<div class="product-photo-thumbs">' + images.slice(1).map(url => '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(product.name) + ' photo" loading="lazy">').join("") + '</div>' : "";
     const name = escapeHtml(localizedName(product.name));
     const imageClass = image ? "product-image" : "product-image image-fallback";
     const slug = escapeHtml(product.slug);
-    return '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
-      '<div class="' + imageClass + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span></div>' +
+    const shopLabel = product.shop_name || (departmentFor(product) === "grocery" ? "Vegz Grocery" : "Vegz Vegetables");
+    const previousShop = index > 0 ? (filtered[index - 1].shop_name || (departmentFor(filtered[index - 1]) === "grocery" ? "Vegz Grocery" : "Vegz Vegetables")) : "";
+    const shopHeading = index === 0 || shopLabel !== previousShop ? '<h2 class="shop-group-heading">' + escapeHtml(shopLabel) + '</h2>' : "";
+    return shopHeading + '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
+      '<div class="' + imageClass + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span>' + gallery + '</div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml((LANG[currentLanguage].category || {})[product.category] || product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
       (qty
@@ -233,12 +238,6 @@ function renderCart() {
 function addToCart(id) {
   const product = products.find((item) => String(item.id) === String(id));
   if (!product) return;
-  const cartDepartments = new Set(cartProducts().map((item) => departmentFor(item.product)));
-  const nextDepartment = departmentFor(product);
-  if (cartDepartments.size && !cartDepartments.has(nextDepartment)) {
-    toast("SEPARATE SUPPLIERS & DELIVERIES\nYour " + Array.from(cartDepartments).map(departmentLabel).join(" + ") + " basket is separate. Please place that order or clear the basket before adding " + departmentLabel(nextDepartment).toLowerCase() + " items.", "error");
-    return;
-  }
   const current = Number(cart[id] || 0);
   const availableStock = Math.max(0, Number(product.stock_qty || 0));
   if (availableStock <= 0 || current >= Math.min(99, availableStock)) {
