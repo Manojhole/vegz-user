@@ -870,16 +870,6 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
             raise HTTPException(status_code=409, detail=f"Only {product.stock_qty} {product.unit} of {product.name} remain.")
         products[product_id] = product
 
-    departments = {
-        "grocery" if product.category.strip().lower() in {"grocery", "spices"} else "vegetables"
-        for product in products.values()
-    }
-    if len(departments) > 1:
-        raise HTTPException(
-            status_code=400,
-            detail="Vegetables and grocery have separate suppliers and deliveries. Place separate orders for each department.",
-        )
-
     subtotal = Decimal("0.00")
     lines: list[dict] = []
     for product_id, quantity in quantities.items():
@@ -897,38 +887,85 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     delivery_fee = Decimal("0.00") if subtotal >= FREE_DELIVERY_MINIMUM else DELIVERY_FEE
     total = _money(subtotal + delivery_fee)
 
+    tracking_code = "VGZ-" + secrets.token_hex(4).upper()
+    remote_products = [product for product in products.values() if product.shop_id is not None]
+    shop_orders = []
+    pickup_stops = []
+    if remote_products:
+        if len(remote_products) != len(products):
+            raise HTTPException(status_code=400, detail="Refresh your basket before checkout; one or more items are from an outdated catalog.")
+        if not SHOP_SERVICE_URL or len(SHOP_INTERNAL_TOKEN) < 32 or not AGENT_SERVICE_URL or len(DISPATCH_SHARED_SECRET) < 32:
+            raise HTTPException(status_code=503, detail="Multi-shop checkout is not configured. Set SHOP_SERVICE_URL, SHOP_INTERNAL_TOKEN, AGENT_SERVICE_URL and DISPATCH_SHARED_SECRET.")
+        grouped: dict[int, list[dict]] = {}
+        for line in lines:
+            product = line["product"]
+            grouped.setdefault(int(product.shop_id), []).append({
+                "product_id": int(product.remote_product_id),
+                "quantity": int(line["quantity"]),
+                "product_name": product.name,
+            })
+        address_text = ", ".join(part for part in [
+            address.line1, address.line2, address.landmark, address.city,
+            address.state, address.postal_code,
+        ] if part)
+        for shop_id, shop_lines in grouped.items():
+            body = {
+                "shop_id": shop_id, "customer_name": address.recipient_name,
+                "customer_phone": address.phone, "delivery_address": address_text,
+                "order_reference": tracking_code,
+                "items": [{"product_id": line["product_id"], "quantity": line["quantity"]} for line in shop_lines],
+            }
+            try:
+                response = httpx.post(SHOP_SERVICE_URL + "/api/internal/orders", json=body,
+                    headers={"Authorization": "Bearer " + SHOP_INTERNAL_TOKEN}, timeout=15.0)
+                response.raise_for_status()
+                shop_order = response.json()
+            except (httpx.HTTPError, ValueError) as exc:
+                raise HTTPException(status_code=502, detail="A shop could not accept the order. Refresh stock and try again.") from exc
+            shop_orders.append(shop_order)
+            pickup_stops.append({
+                "shop_name": shop_order.get("shop_name", "Vegz Shop"),
+                "shop_phone": shop_order.get("shop_phone", ""),
+                "pickup_address": shop_order.get("shop_address") or "Shop pickup address not configured",
+                "item_summary": ", ".join(line["product_name"] + " x" + str(line["quantity"]) for line in shop_lines),
+                "shop_order_id": str(shop_order.get("id", "")),
+            })
+        try:
+            dispatch = httpx.post(AGENT_SERVICE_URL + "/api/internal/dispatch", json={
+                "public_code": tracking_code, "customer_name": address.recipient_name,
+                "customer_phone": address.phone, "delivery_address": address_text,
+                "delivery_instructions": "", "pickup_stops": pickup_stops,
+                "total_amount": float(total), "delivery_fee": float(delivery_fee),
+                "payment_method": payload.payment_method, "payment_status": "pending",
+            }, headers={"Authorization": "Bearer " + DISPATCH_SHARED_SECRET}, timeout=15.0)
+            dispatch.raise_for_status()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise HTTPException(status_code=502, detail="Shop orders were created but delivery assignment failed. Contact Vegz support before retrying.") from exc
+
     order = Order(
-        tracking_code="VGZ-" + secrets.token_hex(4).upper(),
-        user_id=user.id,
-        address_id=address.id,
-        subtotal=subtotal,
-        delivery_fee=delivery_fee,
-        total_amount=total,
-        payment_method=payload.payment_method,
-        payment_status="pending",
-        status="placed",
+        tracking_code=tracking_code, user_id=user.id, address_id=address.id,
+        subtotal=subtotal, delivery_fee=delivery_fee, total_amount=total,
+        payment_method=payload.payment_method, payment_status="pending", status="placed",
     )
     db.add(order)
     for line in lines:
         product = line["product"]
         product.stock_qty -= line["quantity"]
-        order.items.append(
-            OrderItem(
-                product_id=product.id,
-                product_name=product.name,
-                unit=product.unit,
-                unit_price=line["unit_price"],
-                quantity=line["quantity"],
-                line_total=line["line_total"],
-            )
-        )
+        order.items.append(OrderItem(
+            product_id=product.id, product_name=product.name, unit=product.unit,
+            unit_price=line["unit_price"], quantity=line["quantity"], line_total=line["line_total"],
+            shop_id=product.shop_id, shop_name=product.shop_name,
+        ))
     db.commit()
     db.refresh(order)
     result = _order_payload(order)
+    if remote_products:
+        result["shop_orders"] = shop_orders
+        result["pickup_stops"] = pickup_stops
     result["message"] = (
-        "Order placed. Online payment is still pending until a payment gateway is configured."
+        "Order placed and routed to each shop. Online payment is still pending until a payment gateway is configured."
         if payload.payment_method == "online"
-        else "Order placed. Pay the delivery agent when your order arrives."
+        else "Order placed. The delivery agent will collect items from each shop and bring them to you."
     )
     return result
 
