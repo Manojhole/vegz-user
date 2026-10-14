@@ -39,6 +39,7 @@ logger = logging.getLogger("vegz.auth")
 DELIVERY_FEE = Decimal(os.getenv("DELIVERY_FEE", "25"))
 FREE_DELIVERY_MINIMUM = Decimal(os.getenv("FREE_DELIVERY_MINIMUM", "499.00"))
 SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "").rstrip("/")
+SHOP_PUBLIC_URL = os.getenv("SHOP_PUBLIC_URL", SHOP_SERVICE_URL).rstrip("/")
 SHOP_INTERNAL_TOKEN = os.getenv("SHOP_INTERNAL_TOKEN", "")
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "").rstrip("/")
 DISPATCH_SHARED_SECRET = os.getenv("DISPATCH_SHARED_SECRET", "")
@@ -683,7 +684,7 @@ def list_products(category: str | None = Query(default=None, max_length=60), db:
                 remote_id = int(remote["id"])
                 product = db.scalar(select(Product).where(Product.shop_id == shop_id, Product.remote_product_id == remote_id))
                 images = remote.get("image_urls") or ([remote["image_url"]] if remote.get("image_url") else [])
-                images = [image if str(image).startswith(("http://", "https://")) else SHOP_SERVICE_URL + str(image) for image in images]
+                images = [image if str(image).startswith(("http://", "https://")) else SHOP_PUBLIC_URL + str(image) for image in images]
                 values = {
                     "name": remote["name"], "slug": f"shop-{shop_id}-product-{remote_id}",
                     "category": remote.get("category", "Vegetables"), "description": remote.get("description", ""),
