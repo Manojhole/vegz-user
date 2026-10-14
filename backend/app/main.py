@@ -852,8 +852,10 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     )
     if address is None:
         raise HTTPException(status_code=404, detail="Choose a saved delivery address.")
+    if APP_ENV == "production" and not SHOP_SERVICE_URL:
+        raise HTTPException(status_code=503, detail="Live shop routing is not configured. Set SHOP_SERVICE_URL before accepting production orders.")
 
-    # Enforce one supplier department per order; vegetables and grocery use separate fulfilment.
+    # Merge duplicate product rows and validate quantities before changing stock.
     # Grocery/spices are the grocery department; other seeded categories are vegetables.
     # Validate from database records, not from client-provided department labels.
     # Merge duplicate product rows and validate quantities before changing stock.
@@ -974,11 +976,14 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     if remote_products:
         result["shop_orders"] = shop_orders
         result["pickup_stops"] = pickup_stops
-    result["message"] = (
-        "Order placed and routed to each shop. Online payment is still pending until a payment gateway is configured."
-        if payload.payment_method == "online"
-        else "Order placed. The delivery agent will collect items from each shop and bring them to you."
-    )
+    if remote_products:
+        result["message"] = (
+            "Order placed and routed to each shop. Online payment is still pending until a payment gateway is configured."
+            if payload.payment_method == "online"
+            else "Order placed. The delivery agent will collect items from each shop and bring them to you."
+        )
+    else:
+        result["message"] = "Development order saved in the local catalog. Configure shop and agent service URLs to enable real multi-shop routing."
     return result
 
 
