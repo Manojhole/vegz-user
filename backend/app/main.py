@@ -1,4 +1,5 @@
 import hashlib
+import json
 import logging
 import os
 import secrets
@@ -7,6 +8,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 import boto3
+import httpx
 from botocore.exceptions import BotoCoreError, ClientError
 
 import jwt
@@ -14,7 +16,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import desc, select
+from sqlalchemy import desc, inspect, select, text
 from sqlalchemy.orm import Session, joinedload
 
 from .database import Base, engine, get_db
@@ -36,6 +38,10 @@ OTP_MESSAGE_TEMPLATE = os.getenv("OTP_MESSAGE_TEMPLATE", "Your Vegz verification
 logger = logging.getLogger("vegz.auth")
 DELIVERY_FEE = Decimal(os.getenv("DELIVERY_FEE", "25"))
 FREE_DELIVERY_MINIMUM = Decimal(os.getenv("FREE_DELIVERY_MINIMUM", "499.00"))
+SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "").rstrip("/")
+SHOP_INTERNAL_TOKEN = os.getenv("SHOP_INTERNAL_TOKEN", "")
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "").rstrip("/")
+DISPATCH_SHARED_SECRET = os.getenv("DISPATCH_SHARED_SECRET", "")
 
 if APP_ENV == "production" and (
     JWT_SECRET == "local-dev-only-change-this-secret"
@@ -539,6 +545,16 @@ SEED_PRODUCTS = [
 ]
 
 Base.metadata.create_all(bind=engine)
+with engine.begin() as connection:
+    migrations = {
+        "products": {"shop_id": "INTEGER NULL", "shop_name": "VARCHAR(120) NOT NULL DEFAULT ''", "shop_address": "VARCHAR(400) NOT NULL DEFAULT ''", "remote_product_id": "INTEGER NULL", "image_urls": "TEXT NOT NULL DEFAULT '[]'"},
+        "order_items": {"shop_id": "INTEGER NULL", "shop_name": "VARCHAR(120) NOT NULL DEFAULT ''"},
+    }
+    for table, columns_to_add in migrations.items():
+        existing_columns = {column["name"] for column in inspect(engine).get_columns(table)}
+        for column_name, column_sql in columns_to_add.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column_name} {column_sql}"))
 
 
 def seed_products() -> None:
@@ -596,6 +612,22 @@ def _money(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def _product_payload(product: Product) -> dict:
+    try:
+        images = json.loads(product.image_urls or "[]")
+    except (TypeError, ValueError):
+        images = []
+    if not images and product.image_url:
+        images = [product.image_url]
+    return {
+        "id": product.id, "name": product.name, "slug": product.slug,
+        "category": product.category, "description": product.description,
+        "image_url": product.image_url, "image_urls": images[:3],
+        "unit": product.unit, "price": float(product.price), "stock_qty": product.stock_qty,
+        "shop_id": product.shop_id, "shop_name": product.shop_name, "shop_address": product.shop_address,
+    }
+
+
 def _order_payload(order: Order) -> dict:
     return {
         "id": order.id,
@@ -614,7 +646,7 @@ def _order_payload(order: Order) -> dict:
                 "unit": item.unit,
                 "unit_price": float(item.unit_price),
                 "quantity": item.quantity,
-                "line_total": float(item.line_total),
+                "line_total": float(item.line_total), "shop_id": item.shop_id, "shop_name": item.shop_name,
             }
             for item in order.items
         ],
@@ -635,15 +667,44 @@ def health():
     return {"status": "ok", "service": "vegz-user-api"}
 
 
-@app.get("/api/products", response_model=list[ProductOut])
-def list_products(
-    category: str | None = Query(default=None, max_length=60),
-    db: Session = Depends(get_db),
-):
-    query = select(Product).where(Product.is_active.is_(True), Product.stock_qty > 0).order_by(Product.id)
-    if category and category.lower() != "all":
-        query = query.where(Product.category == category)
-    return list(db.scalars(query).all())
+@app.get("/api/products")
+def list_products(category: str | None = Query(default=None, max_length=60), db: Session = Depends(get_db)):
+    if SHOP_SERVICE_URL:
+        try:
+            response = httpx.get(SHOP_SERVICE_URL + "/api/marketplace", timeout=12.0)
+            response.raise_for_status()
+            marketplace = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise HTTPException(status_code=502, detail="Could not load the live shop catalog. Check SHOP_SERVICE_URL.") from exc
+        for shop in marketplace:
+            shop_id = int(shop["shop_id"])
+            for remote in shop.get("products", []):
+                if category and category.lower() != "all" and remote.get("category") != category:
+                    continue
+                remote_id = int(remote["id"])
+                product = db.scalar(select(Product).where(Product.shop_id == shop_id, Product.remote_product_id == remote_id))
+                images = remote.get("image_urls") or ([remote["image_url"]] if remote.get("image_url") else [])
+                values = {
+                    "name": remote["name"], "slug": f"shop-{shop_id}-product-{remote_id}",
+                    "category": remote.get("category", "Vegetables"), "description": remote.get("description", ""),
+                    "image_url": images[0] if images else "", "image_urls": json.dumps(images[:3]),
+                    "unit": remote.get("unit", "kg"), "price": Decimal(str(remote["price"])),
+                    "stock_qty": int(remote.get("stock_qty", 0)), "is_active": bool(remote.get("customer_can_order", True)),
+                    "shop_id": shop_id, "shop_name": shop.get("shop_name", "Vegz Shop"),
+                    "shop_address": shop.get("shop_address", ""), "remote_product_id": remote_id,
+                }
+                if product is None:
+                    db.add(Product(**values))
+                else:
+                    for key, value in values.items():
+                        setattr(product, key, value)
+        db.commit()
+        query = select(Product).where(Product.shop_id.is_not(None), Product.is_active.is_(True), Product.stock_qty > 0).order_by(Product.shop_name, Product.category, Product.name)
+    else:
+        query = select(Product).where(Product.is_active.is_(True), Product.stock_qty > 0).order_by(Product.category, Product.name)
+        if category and category.lower() != "all":
+            query = query.where(Product.category == category)
+    return [_product_payload(product) for product in db.scalars(query).all()]
 
 
 @app.post("/api/auth/request-otp")
