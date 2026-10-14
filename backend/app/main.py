@@ -687,7 +687,7 @@ def list_products(category: str | None = Query(default=None, max_length=60), db:
                 images = [image if str(image).startswith(("http://", "https://")) else SHOP_PUBLIC_URL + str(image) for image in images]
                 values = {
                     "name": remote["name"], "slug": f"shop-{shop_id}-product-{remote_id}",
-                    "category": remote.get("category", "Vegetables"), "description": remote.get("description", ""),
+                    "category": ((remote.get("category", "Grocery") if remote.get("category") in {"Grocery", "Spices"} else "Grocery") if shop.get("shop_type", "vegetable") == "grocery" else (remote.get("category", "Vegetables") if remote.get("category", "Vegetables") not in {"Grocery", "Spices"} else "Vegetables")), "description": remote.get("description", ""),
                     "image_url": images[0] if images else "", "image_urls": json.dumps(images[:3]),
                     "unit": remote.get("unit", "kg"), "price": Decimal(str(remote["price"])),
                     "stock_qty": int(remote.get("stock_qty", 0)), "is_active": bool(remote.get("customer_can_order", True)),
