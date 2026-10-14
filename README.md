@@ -47,7 +47,7 @@ HTTPS is required for PWA installation and is enforced by the Android shell. The
 
 - API root: same-origin /api (for example, https://vegz.online/api/products).
 - Database tables: users, otp_sessions, products, addresses, orders, and order_items.
-- The customer module can share this same database with future shop, delivery-agent and admin modules. Those modules and their role-specific endpoints are not implemented in this first release.
+- The customer service synchronizes the live catalog through the shop service API and routes a mixed-shop checkout to one suborder per shop, then sends one multi-pickup dispatch to the agent service. Keep the services on separate databases and use authenticated private API calls; do not point the independent schemas at one shared database.
 - Product prices and stock are checked server-side during order creation. Delivery pricing comes from /api/store-config.
 - When `SHOP_SERVICE_URL`, `SHOP_INTERNAL_TOKEN`, `AGENT_SERVICE_URL`, and `DISPATCH_SHARED_SECRET` are configured, the customer catalog syncs from open shops, mixed-shop checkout creates a suborder per shop, and one delivery assignment carries each shop as a pickup stop.
 - Configure `SHOP_INTERNAL_TOKEN` identically in vegz-user and vegz-shop, and `DISPATCH_SHARED_SECRET` identically in vegz-user and vegz-agent. For local processes, use shop port 8002 and agent port 8001; for Docker, use private service DNS names instead of localhost.
