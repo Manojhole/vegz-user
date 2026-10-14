@@ -49,6 +49,8 @@ HTTPS is required for PWA installation and is enforced by the Android shell. The
 - Database tables: users, otp_sessions, products, addresses, orders, and order_items.
 - The customer module can share this same database with future shop, delivery-agent and admin modules. Those modules and their role-specific endpoints are not implemented in this first release.
 - Product prices and stock are checked server-side during order creation. Delivery pricing comes from /api/store-config.
+- When `SHOP_SERVICE_URL`, `SHOP_INTERNAL_TOKEN`, `AGENT_SERVICE_URL`, and `DISPATCH_SHARED_SECRET` are configured, the customer catalog syncs from open shops, mixed-shop checkout creates a suborder per shop, and one delivery assignment carries each shop as a pickup stop.
+- Configure `SHOP_INTERNAL_TOKEN` identically in vegz-user and vegz-shop, and `DISPATCH_SHARED_SECRET` identically in vegz-user and vegz-agent. For local processes, use shop port 8002 and agent port 8001; for Docker, use private service DNS names instead of localhost.
 
 ## Before production
 
@@ -62,3 +64,8 @@ HTTPS is required for PWA installation and is enforced by the Android shell. The
 ## Important note
 
 This is the first customer-facing MVP scaffold pushed to the repository. Prices and stock quantities are seed/demo data and should be replaced with actual shop inventory and pricing before orders are accepted from the public.
+
+
+## Multi-shop integration configuration
+
+Copy the integration variables from `backend/.env.example` into the root `.env` and set the same strong random secrets in the corresponding shop and agent `.env` files. Keep all service URLs private to the EC2 Docker network in production. The apps use separate database schemas/services; do not point their independent models at one shared database without a reviewed migration plan.
