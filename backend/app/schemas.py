@@ -13,6 +13,10 @@ class ProductOut(BaseModel):
     unit: str
     price: float
     stock_qty: int
+    shop_id: int | None = None
+    shop_name: str = ""
+    shop_address: str = ""
+    image_urls: list[str] = Field(default_factory=list)
 
 
 class OtpRequest(BaseModel):
@@ -66,6 +70,7 @@ class AddressOut(AddressIn):
 
 class CartItemIn(BaseModel):
     product_id: int
+    shop_id: int | None = None
     quantity: int = Field(ge=1, le=99)
 
 
@@ -82,6 +87,8 @@ class OrderItemOut(BaseModel):
     unit_price: float
     quantity: int
     line_total: float
+    shop_id: int | None = None
+    shop_name: str = ""
 
 
 class OrderOut(BaseModel):
