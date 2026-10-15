@@ -172,14 +172,20 @@ function renderProducts() {
     $("#productGrid").innerHTML = '<div class="empty-results"><span>🌿</span><strong>No fresh picks found.</strong><p>Try another search or category.</p><button class="flow-back" id="clearSearchButton" type="button">Clear filters</button></div>';
     return;
   }
+  let lastShopGroup = null;
   $("#productGrid").innerHTML = filtered.map((product, index) => {
+    const shopGroup = product.shop_id != null ? "shop-" + product.shop_id : "general";
+    const shopHeading = shopGroup !== lastShopGroup
+      ? '<div class="shop-group-heading"><div><span>LOCAL PARTNER</span><h3>' + escapeHtml(product.shop_name || (activeDepartment === "grocery" ? "Vegz Grocery Picks" : "Vegz Fresh Picks")) + '</h3>' + (product.shop_address ? '<p>' + escapeHtml(product.shop_address) + '</p>' : '') + '</div><small>Available in ' + escapeHtml(selectedCity) + '</small></div>'
+      : "";
+    lastShopGroup = shopGroup;
     const qty = Number(cart[product.id] || 0);
     const images = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])).slice(0, 3);
     const image = escapeHtml(images[0] || "");
     const gallery = images.length > 1 ? '<div class="product-photo-thumbs">' + images.slice(1).map((url, imageIndex) => '<button class="product-photo-thumb" data-gallery-product="' + product.id + '" data-gallery-index="' + (imageIndex + 1) + '" type="button" aria-label="View photo ' + (imageIndex + 2) + ' of ' + escapeHtml(product.name) + '"><img src="' + escapeHtml(url) + '" alt="" loading="lazy"></button>').join("") + '</div>' : "";
     const name = escapeHtml(localizedName(product.name));
     const imageClass = image ? "product-image" : "product-image image-fallback";
-    return '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
+    return shopHeading + '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
       '<div class="' + imageClass + '" data-gallery-main="' + product.id + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span>' + gallery + '</div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml((LANG[currentLanguage].category || {})[product.category] || product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
