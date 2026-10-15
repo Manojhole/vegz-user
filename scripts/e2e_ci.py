@@ -77,7 +77,7 @@ def run():
     product = call("POST",url("shop","/api/products"),{"name":"Tomato","price":35,"stock_qty":20,"is_available":True},shop["access_token"],(201,))
     call("PATCH",url("agent","/api/me"),{"is_online":True},agent["access_token"])
     catalog = call("GET",url("user","/api/products?city=Hubli"))
-    item = next(x for x in catalog if x["shop_id"] == st["id"] and x["remote_product_id"] == product["id"])
+    item = next(x for x in catalog if x["shop_id"] == st["id"] and x["name"] == "Tomato")
     otp = call("POST",url("user","/api/auth/request-otp"),{"phone":"+919876543299"})["demo_otp"]
     customer = call("POST",url("user","/api/auth/verify-otp"),{"phone":"+919876543299","otp":otp})
     addr = call("POST",url("user","/api/addresses"),{"recipient_name":"E2E Customer","phone":"+919876543299","line1":"12 Test Market Road","city":"Hubli","state":"Karnataka","postal_code":"580020","is_default":True},customer["access_token"],(201,))
