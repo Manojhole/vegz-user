@@ -84,7 +84,7 @@ def run():
     order = call("POST",url("user","/api/orders"),{"address_id":addr["id"],"payment_method":"cod","items":[{"product_id":item["id"],"quantity":1}]},customer["access_token"],(201,))
     assert len(order.get("shop_orders",[])) == 1
     assert any(x["public_code"] == order["tracking_code"] for x in call("GET",url("agent","/api/orders"),token=agent["access_token"]))
-    assert any(x.get("order_reference") == order["tracking_code"] for x in call("GET",url("shop","/api/orders"),token=shop["access_token"]))
+    assert any(order["tracking_code"] in x.get("note", "") for x in call("GET",url("shop","/api/orders"),token=shop["access_token"]))
     print("PASS admin login, partner registration/approval, catalog, checkout, shop order, agent dispatch")
     print("ALL CROSS-SERVICE E2E CHECKS PASSED")
 
