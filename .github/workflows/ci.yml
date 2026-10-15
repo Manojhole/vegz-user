@@ -17,7 +17,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
       - name: Compile Python sources
         run: python -m compileall -q backend
+      - name: Test customer marketplace integration
+        run: python -m unittest discover -s backend/tests -v
       - name: Check frontend JavaScript syntax
         run: node --check frontend/app.js
