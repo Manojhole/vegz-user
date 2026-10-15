@@ -1,0 +1,45 @@
+name: Vegz Cross-Service E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  marketplace-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout customer app
+        uses: actions/checkout@v4
+        with:
+          repository: Manojhole/vegz-user
+          path: vegz-user
+      - name: Checkout shop app
+        uses: actions/checkout@v4
+        with:
+          repository: Manojhole/vegz-shop
+          path: vegz-shop
+      - name: Checkout agent app
+        uses: actions/checkout@v4
+        with:
+          repository: Manojhole/vegz-agent
+          path: vegz-agent
+      - name: Checkout admin app
+        uses: actions/checkout@v4
+        with:
+          repository: Manojhole/vegz-admin
+          path: vegz-admin
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated app dependencies
+        run: |
+          for app in user shop agent admin; do
+            python -m venv ".venv-$app"
+            ".venv-$app/bin/pip" install --disable-pip-version-check -r "vegz-$app/backend/requirements.txt"
+          done
+      - name: Verify registration, approval, catalog, checkout and dispatch
+        run: python vegz-user/scripts/e2e_ci.py
