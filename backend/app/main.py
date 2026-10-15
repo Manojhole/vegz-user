@@ -38,11 +38,11 @@ OTP_MESSAGE_TEMPLATE = os.getenv("OTP_MESSAGE_TEMPLATE", "Your Vegz verification
 logger = logging.getLogger("vegz.auth")
 DELIVERY_FEE = Decimal(os.getenv("DELIVERY_FEE", "25"))
 FREE_DELIVERY_MINIMUM = Decimal(os.getenv("FREE_DELIVERY_MINIMUM", "499.00"))
-SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "").rstrip("/")
+SHOP_SERVICE_URL = os.getenv("SHOP_SERVICE_URL", "http://host.docker.internal:8002" if APP_ENV == "development" else "").rstrip("/")
 SHOP_PUBLIC_URL = os.getenv("SHOP_PUBLIC_URL", SHOP_SERVICE_URL).rstrip("/")
-SHOP_INTERNAL_TOKEN = os.getenv("SHOP_INTERNAL_TOKEN", "")
-AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "").rstrip("/")
-DISPATCH_SHARED_SECRET = os.getenv("DISPATCH_SHARED_SECRET", "")
+SHOP_INTERNAL_TOKEN = os.getenv("SHOP_INTERNAL_TOKEN", "vegz-local-shop-order-token-change-before-production" if APP_ENV == "development" else "")
+AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://host.docker.internal:8001" if APP_ENV == "development" else "").rstrip("/")
+DISPATCH_SHARED_SECRET = os.getenv("DISPATCH_SHARED_SECRET", "vegz-local-agent-dispatch-token-change-before-production" if APP_ENV == "development" else "")
 
 if APP_ENV == "production" and (
     JWT_SECRET == "local-dev-only-change-this-secret"
