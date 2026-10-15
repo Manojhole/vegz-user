@@ -926,6 +926,7 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
         ] if part)
         try:
             availability = httpx.get(AGENT_SERVICE_URL + "/api/internal/availability",
+                params={"city": " ".join(address.city.split()).title()},
                 headers={"Authorization": "Bearer " + DISPATCH_SHARED_SECRET}, timeout=8.0)
             availability.raise_for_status()
             if not availability.json().get("available"):
@@ -960,6 +961,7 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
             dispatch = httpx.post(AGENT_SERVICE_URL + "/api/internal/dispatch", json={
                 "public_code": tracking_code, "customer_name": address.recipient_name,
                 "customer_phone": address.phone, "delivery_address": address_text,
+                "delivery_city": " ".join(address.city.split()).title(),
                 "delivery_instructions": "", "pickup_stops": pickup_stops,
                 "total_amount": float(total), "delivery_fee": float(delivery_fee),
                 "payment_method": payload.payment_method, "payment_status": "pending",
