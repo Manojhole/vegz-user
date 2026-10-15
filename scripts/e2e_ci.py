@@ -64,6 +64,11 @@ def run():
     agent = call("POST",url("agent","/api/auth/demo-login"),{"phone":"9876543215","code":"123456","full_name":"E2E Agent","city":"Hubli"})
     assert shop["shop"]["approval_status"] == "pending"
     assert not agent["agent"]["is_verified"]
+    # Pending partners must never leak into the public marketplace.
+    assert call("GET",url("user","/api/products?city=Hubli")) == []
+    # Shop identity is immutable after onboarding, even before approval.
+    locked_city = call("PATCH",url("shop","/api/shop"),{"city":"Dharwad"},shop["access_token"],(403,))
+    assert "fixed at registration" in locked_city["detail"]
     shops = call("GET",url("admin","/api/shops?status_filter=pending"),token=admin)
     agents = call("GET",url("admin","/api/agents?status_filter=pending"),token=admin)
     sid = next(x["id"] for x in shops if x["phone"] == "+919876543212")
@@ -75,7 +80,17 @@ def run():
     assert st["approval_status"] == "approved" and at["is_verified"]
     call("PATCH",url("shop","/api/shop"),{"is_open":True,"accepts_orders":True},shop["access_token"])
     product = call("POST",url("shop","/api/products"),{"name":"Tomato","price":35,"stock_qty":20,"is_available":True},shop["access_token"],(201,))
+    # Verify stock/price edits propagate to the customer catalog and out-of-stock items disappear.
+    updated = call("PATCH",url("shop",f"/api/products/{product['id']}"),{"price":40,"stock_qty":18},shop["access_token"])
+    assert updated["price"] == 40 and updated["stock_qty"] == 18
     call("PATCH",url("agent","/api/me"),{"is_online":True},agent["access_token"])
+    catalog = call("GET",url("user","/api/products?city=Hubli"))
+    item = next(x for x in catalog if x["shop_id"] == st["id"] and x["name"] == "Tomato")
+    assert item["price"] == 40 and item["stock_qty"] == 18
+    assert call("GET",url("user","/api/products?city=Dharwad")) == []
+    call("PATCH",url("shop",f"/api/products/{product['id']}"),{"is_available":False},shop["access_token"])
+    assert all(x["id"] != item["id"] for x in call("GET",url("user","/api/products?city=Hubli")))
+    call("PATCH",url("shop",f"/api/products/{product['id']}"),{"is_available":True},shop["access_token"])
     catalog = call("GET",url("user","/api/products?city=Hubli"))
     item = next(x for x in catalog if x["shop_id"] == st["id"] and x["name"] == "Tomato")
     otp = call("POST",url("user","/api/auth/request-otp"),{"phone":"+919876543299"})["demo_otp"]
