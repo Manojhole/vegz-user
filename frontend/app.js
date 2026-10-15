@@ -1,4 +1,6 @@
 const API = "";
+const CITY_KEY = "vegz_delivery_city";
+let selectedCity = (() => { try { return localStorage.getItem(CITY_KEY) || "Hubli"; } catch (_) { return "Hubli"; } })();
 let FREE_DELIVERY_MINIMUM = 499;
 let STANDARD_DELIVERY_FEE = 25;
 const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -130,7 +132,7 @@ async function loadProducts() {
       FREE_DELIVERY_MINIMUM = Number(config.free_delivery_minimum || FREE_DELIVERY_MINIMUM);
       STANDARD_DELIVERY_FEE = Number(config.delivery_fee || STANDARD_DELIVERY_FEE);
     } catch (_) {}
-    products = await request("/api/products");
+    products = await request("/api/products?city=" + encodeURIComponent(selectedCity));
     const byId = new Map(products.map((product) => [String(product.id), product]));
     Object.keys(cart).forEach((id) => {
       const product = byId.get(String(id));
@@ -174,25 +176,31 @@ function renderProducts() {
     const qty = Number(cart[product.id] || 0);
     const images = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])).slice(0, 3);
     const image = escapeHtml(images[0] || "");
-    const gallery = images.length > 1 ? '<div class="product-photo-thumbs">' + images.slice(1).map(url => '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(product.name) + ' photo" loading="lazy">').join("") + '</div>' : "";
+    const gallery = images.length > 1 ? '<div class="product-photo-thumbs">' + images.slice(1).map((url, imageIndex) => '<button class="product-photo-thumb" data-gallery-product="' + product.id + '" data-gallery-index="' + (imageIndex + 1) + '" type="button" aria-label="View photo ' + (imageIndex + 2) + ' of ' + escapeHtml(product.name) + '"><img src="' + escapeHtml(url) + '" alt="" loading="lazy"></button>').join("") + '</div>' : "";
     const name = escapeHtml(localizedName(product.name));
     const imageClass = image ? "product-image" : "product-image image-fallback";
-    const slug = escapeHtml(product.slug);
-    const shopLabel = product.shop_name || (departmentFor(product) === "grocery" ? "Vegz Grocery" : "Vegz Vegetables");
-    const previousShop = index > 0 ? (filtered[index - 1].shop_name || (departmentFor(filtered[index - 1]) === "grocery" ? "Vegz Grocery" : "Vegz Vegetables")) : "";
-    const shopHeading = index === 0 || shopLabel !== previousShop ? '<h2 class="shop-group-heading">' + escapeHtml(shopLabel) + '</h2>' : "";
-    return shopHeading + '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
-      '<div class="' + imageClass + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span>' + gallery + '</div>' +
+    return '<article class="product-card" style="animation-delay:' + Math.min(index * 45, 240) + 'ms">' +
+      '<div class="' + imageClass + '" data-gallery-main="' + product.id + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span>' + gallery + '</div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml((LANG[currentLanguage].category || {})[product.category] || product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
       (qty
         ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
         : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>') + '</div></div></article>';
   }).join("");
-  $$("#productGrid .product-image img").forEach((image) => {
+  $("#productGrid .product-image img").forEach((image) => {
     image.addEventListener("error", () => image.parentElement.classList.add("image-fallback"), { once: true });
     if (image.complete && image.naturalWidth === 0) image.parentElement.classList.add("image-fallback");
   });
+  $("#productGrid [data-gallery-product]").forEach((button) => button.addEventListener("click", () => {
+    const product = products.find((item) => String(item.id) === button.dataset.galleryProduct);
+    if (!product) return;
+    const images = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])).slice(0, 3);
+    const nextImage = images[Number(button.dataset.galleryIndex)];
+    const main = $('#productGrid [data-gallery-main="' + button.dataset.galleryProduct + '"]');
+    const image = main && main.querySelector("img");
+    if (image && nextImage) image.src = nextImage;
+    $('#productGrid [data-gallery-product="' + button.dataset.galleryProduct + '"]').forEach((thumb) => thumb.classList.toggle("selected", thumb === button));
+  }));
 }
 
 function renderCart() {
@@ -606,6 +614,20 @@ $("#yearLabel").textContent = String(new Date().getFullYear());
 const savedLanguage = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return null; } })();
 applyLanguage(savedLanguage || (String(navigator.language || "").toLowerCase().startsWith("kn") ? "kn" : "en"), false);
 $("#languageSelect")?.addEventListener("change", event => applyLanguage(event.target.value, true));
+const cityPicker = $("#deliveryCitySelect");
+if (cityPicker) {
+  cityPicker.value = selectedCity;
+  cityPicker.addEventListener("change", () => {
+    const nextCity = cityPicker.value;
+    if (nextCity === selectedCity) return;
+    selectedCity = nextCity;
+    try { localStorage.setItem(CITY_KEY, selectedCity); } catch (_) {}
+    cart = {};
+    saveCart();
+    renderCart();
+    loadProducts();
+  });
+}
 loadProducts();
 if (token) {
   request("/api/me").then((user) => { currentUser = user; }).catch(() => { token = ""; });

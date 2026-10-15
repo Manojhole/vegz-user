@@ -669,10 +669,12 @@ def health():
 
 
 @app.get("/api/products")
-def list_products(category: str | None = Query(default=None, max_length=60), db: Session = Depends(get_db)):
+def list_products(category: str | None = Query(default=None, max_length=60), city: str | None = Query(default=None, max_length=100), db: Session = Depends(get_db)):
     if SHOP_SERVICE_URL:
         try:
-            response = httpx.get(SHOP_SERVICE_URL + "/api/marketplace", timeout=12.0)
+            marketplace_url = SHOP_SERVICE_URL + "/api/marketplace"
+            params = {"city": " ".join(city.split()).title()} if city and city.strip() else {}
+            response = httpx.get(marketplace_url, params=params, timeout=12.0)
             response.raise_for_status()
             marketplace = response.json()
         except (httpx.HTTPError, ValueError) as exc:
@@ -899,6 +901,15 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     if remote_products:
         if len(remote_products) != len(products):
             raise HTTPException(status_code=400, detail="Refresh your basket before checkout; one or more items are from an outdated catalog.")
+        # Never dispatch a basket to shops outside the saved delivery address city.
+        try:
+            city_response = httpx.get(SHOP_SERVICE_URL + "/api/marketplace", params={"city": " ".join(address.city.split()).title()}, timeout=8.0)
+            city_response.raise_for_status()
+            city_shop_ids = {int(item["shop_id"]) for item in city_response.json()}
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            raise HTTPException(status_code=502, detail="Could not verify shop coverage for this delivery city. Please try again.") from exc
+        if any(product.shop_id not in city_shop_ids for product in remote_products):
+            raise HTTPException(status_code=409, detail=f"Your basket contains items outside {address.city}. Change your delivery address or refresh the catalog for {address.city}.")
         if not SHOP_SERVICE_URL or len(SHOP_INTERNAL_TOKEN) < 32 or not AGENT_SERVICE_URL or len(DISPATCH_SHARED_SECRET) < 32:
             raise HTTPException(status_code=503, detail="Multi-shop checkout is not configured. Set SHOP_SERVICE_URL, SHOP_INTERNAL_TOKEN, AGENT_SERVICE_URL and DISPATCH_SHARED_SECRET.")
         grouped: dict[int, list[dict]] = {}
@@ -915,6 +926,7 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
         ] if part)
         try:
             availability = httpx.get(AGENT_SERVICE_URL + "/api/internal/availability",
+                params={"city": " ".join(address.city.split()).title()},
                 headers={"Authorization": "Bearer " + DISPATCH_SHARED_SECRET}, timeout=8.0)
             availability.raise_for_status()
             if not availability.json().get("available"):
@@ -949,6 +961,7 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
             dispatch = httpx.post(AGENT_SERVICE_URL + "/api/internal/dispatch", json={
                 "public_code": tracking_code, "customer_name": address.recipient_name,
                 "customer_phone": address.phone, "delivery_address": address_text,
+                "delivery_city": " ".join(address.city.split()).title(),
                 "delivery_instructions": "", "pickup_stops": pickup_stops,
                 "total_amount": float(total), "delivery_fee": float(delivery_fee),
                 "payment_method": payload.payment_method, "payment_status": "pending",
