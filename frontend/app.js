@@ -511,7 +511,7 @@ async function loadOrders() {
     const orders = await request("/api/orders");
     target.innerHTML = orders.length ? orders.map((order) => {
       return '<div class="order-card"><div class="order-card-head"><div><strong>Order #' + escapeHtml(order.id) + '</strong><small>' + escapeHtml(new Date(order.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })) + '</small></div><span class="order-status">' + escapeHtml(String(order.status).replace(/_/g, " ")) + '</span></div>' +
-        '<div class="order-card-foot"><strong>' + currency(order.total_amount) + '</strong><button type="button" data-track="' + order.id + '">Track order →</button></div></div>';
+        '<div class="order-card-foot"><strong>' + currency(order.total_amount) + '</strong><button type="button" data-track="' + order.id + '">Track order →</button><button type="button" data-report-issue="' + order.id + '">Report issue</button></div></div>';
     }).join("") : '<div class="empty-results"><span>🧺</span><strong>No orders yet</strong><p>Your first fresh basket is just around the corner.</p></div>';
   } catch (error) { target.innerHTML = '<p class="flow-description">' + escapeHtml(error.message) + '</p>'; }
 }
@@ -555,6 +555,7 @@ document.addEventListener("click", (event) => {
   const remove = target.closest("[data-remove]");
   const category = target.closest("[data-category]");
   const track = target.closest("[data-track]");
+  const reportIssue = target.closest("[data-report-issue]");
   if (add) { addToCart(add.dataset.add); return; }
   if (minus) { decreaseCart(minus.dataset.minus); return; }
   if (remove) { removeCart(remove.dataset.remove); return; }
@@ -578,6 +579,17 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (track) { trackOrder(track.dataset.track); return; }
+  if (reportIssue) {
+    const category = prompt("Issue type: missing_item, damaged_item, quality, late_delivery, delivery_failed, other", "other");
+    if (!category) return;
+    const description = prompt("Describe the issue (required):");
+    if (!description || !description.trim()) { toast("Please describe the issue.", "error"); return; }
+    try {
+      const ticket = await request("/api/support/tickets", {method:"POST", body:{order_id:Number(reportIssue.dataset.reportIssue), category:category.trim().toLowerCase(), description:description.trim()}});
+      toast("Issue reported. Reference #" + ticket.id);
+    } catch (error) { toast(error.message || "Could not report issue.", "error"); }
+    return;
+  }
   if (target.id === "retryProductsButton") loadProducts();
   if (target.id === "clearSearchButton") {
     query = "";
