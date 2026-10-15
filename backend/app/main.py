@@ -669,10 +669,12 @@ def health():
 
 
 @app.get("/api/products")
-def list_products(category: str | None = Query(default=None, max_length=60), db: Session = Depends(get_db)):
+def list_products(category: str | None = Query(default=None, max_length=60), city: str | None = Query(default=None, max_length=100), db: Session = Depends(get_db)):
     if SHOP_SERVICE_URL:
         try:
-            response = httpx.get(SHOP_SERVICE_URL + "/api/marketplace", timeout=12.0)
+            marketplace_url = SHOP_SERVICE_URL + "/api/marketplace"
+            params = {"city": " ".join(city.split()).title()} if city and city.strip() else {}
+            response = httpx.get(marketplace_url, params=params, timeout=12.0)
             response.raise_for_status()
             marketplace = response.json()
         except (httpx.HTTPError, ValueError) as exc:
