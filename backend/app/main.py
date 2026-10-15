@@ -20,7 +20,7 @@ from sqlalchemy import desc, inspect, select, text
 from sqlalchemy.orm import Session, joinedload
 
 from .database import Base, engine, get_db
-from .models import Address, OtpSession, Order, OrderItem, Product, User
+from .models import Address, OtpSession, Order, OrderItem, Product, SupportTicket, User
 from .schemas import (
     AddressIn, AddressOut, AuthOut, CartItemIn, OtpRequest, OtpVerify,
     OrderIn, ProductOut, UserOut,
@@ -1045,6 +1045,45 @@ def track_order(order_id: int, user: User = Depends(_require_user), db: Session 
             for index, step in enumerate(steps)
         ],
     }
+
+
+@app.post("/api/support/tickets", status_code=201)
+def create_support_ticket(payload: dict, user: User = Depends(_require_user), db: Session = Depends(get_db)):
+    """Create a customer-owned issue report; payment and messaging integrations are intentionally deferred."""
+    category = str(payload.get("category", "other")).strip().lower()
+    description = str(payload.get("description", "")).strip()
+    image_url = str(payload.get("image_url", "")).strip()
+    order_id = payload.get("order_id")
+    allowed_categories = {"missing_item", "damaged_item", "late_delivery", "delivery_failed", "quality", "other"}
+    if category not in allowed_categories:
+        raise HTTPException(status_code=422, detail="Choose a supported support category.")
+    if not description or len(description) > 2000:
+        raise HTTPException(status_code=422, detail="Describe the issue in 1–2000 characters.")
+    if len(image_url) > 500:
+        raise HTTPException(status_code=422, detail="Image URL is too long.")
+    if order_id is not None:
+        order = db.scalar(select(Order).where(Order.id == order_id, Order.user_id == user.id))
+        if order is None:
+            raise HTTPException(status_code=404, detail="Order not found for this account.")
+    ticket = SupportTicket(user_id=user.id, order_id=order_id, category=category,
+                           description=description, image_url=image_url, status="open")
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+    return {"id": ticket.id, "order_id": ticket.order_id, "category": ticket.category,
+            "description": ticket.description, "image_url": ticket.image_url, "status": ticket.status,
+            "resolution_note": ticket.resolution_note, "created_at": ticket.created_at.isoformat() + "Z",
+            "updated_at": ticket.updated_at.isoformat() + "Z"}
+
+
+@app.get("/api/support/tickets")
+def list_support_tickets(user: User = Depends(_require_user), db: Session = Depends(get_db)):
+    tickets = db.scalars(select(SupportTicket).where(SupportTicket.user_id == user.id)
+                         .order_by(desc(SupportTicket.created_at))).all()
+    return [{"id": ticket.id, "order_id": ticket.order_id, "category": ticket.category,
+             "description": ticket.description, "image_url": ticket.image_url, "status": ticket.status,
+             "resolution_note": ticket.resolution_note, "created_at": ticket.created_at.isoformat() + "Z",
+             "updated_at": ticket.updated_at.isoformat() + "Z"} for ticket in tickets]
 
 
 frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
