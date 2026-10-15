@@ -745,3 +745,11 @@ body {
 .product-photo-thumb.selected{border-color:var(--accent,#34834a);transform:translateY(-2px)}
 .product-image{position:relative}
 @media(max-width:600px){.city-location-picker{margin-bottom:12px}.city-location-picker select{min-width:120px}}
+
+/* Shop-first marketplace sections: customers see their local partner before its products. */
+.shop-group-heading { grid-column: 1 / -1; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 2px 2px; min-width:0; }
+.shop-group-heading > div { min-width:0; }
+.shop-group-heading span { display:block; color:var(--green); font-size:9px; font-weight:800; letter-spacing:.13em; }
+.shop-group-heading h3 { margin:4px 0 0; color:var(--ink); font-size:17px; line-height:1.25; }
+.shop-group-heading p { margin:4px 0 0; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+.shop-group-heading > small { flex:0 0 auto; color:var(--muted); font-size:10px; text-align:right; }
