@@ -547,7 +547,7 @@ function beginOrders() {
   else showFlow("orders");
 }
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const target = event.target instanceof Element ? event.target : event.target?.parentElement;
   if (!target) return;
   const add = target.closest("[data-add]");
