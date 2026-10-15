@@ -112,3 +112,18 @@ class OrderItem(Base):
     shop_name: Mapped[str] = mapped_column(String(120), default="")
 
     order: Mapped["Order"] = relationship(back_populates="items")
+
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"), nullable=True, index=True)
+    category: Mapped[str] = mapped_column(String(40), default="other")
+    description: Mapped[str] = mapped_column(Text)
+    image_url: Mapped[str] = mapped_column(String(500), default="")
+    status: Mapped[str] = mapped_column(String(24), default="open", index=True)
+    resolution_note: Mapped[str] = mapped_column(String(500), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
