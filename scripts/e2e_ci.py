@@ -40,7 +40,7 @@ def start(app, env):
 def run():
     shared = {"APP_ENV":"development","PARTNER_ADMIN_TOKEN":TOKEN}
     start("admin", {**shared,"DATABASE_URL":f"sqlite:///{DATA.name}/admin.db",
-      "JWT_SECRET":"a"*48,"BOOTSTRAP_ADMIN_EMAIL":"admin@vegz.test",
+      "JWT_SECRET":"a"*48,"BOOTSTRAP_ADMIN_EMAIL":"admin@example.com",
       "BOOTSTRAP_ADMIN_PASSWORD":ADMIN_PASSWORD,"SHOP_SERVICE_URL":url("shop"),
       "AGENT_SERVICE_URL":url("agent")})
     start("agent", {**shared,"DATABASE_URL":f"sqlite:///{DATA.name}/agent.db",
@@ -59,7 +59,7 @@ def run():
             try: call("GET",url(app,"/api/health")); print("PASS health",app); break
             except Exception: time.sleep(.5)
         else: raise RuntimeError(f"{app} failed to start; check its CI log")
-    admin = call("POST",url("admin","/api/auth/login"),{"email":"admin@vegz.test","password":ADMIN_PASSWORD})["access_token"]
+    admin = call("POST",url("admin","/api/auth/login"),{"email":"admin@example.com","password":ADMIN_PASSWORD})["access_token"]
     shop = call("POST",url("shop","/api/auth/demo-login"),{"phone":"9876543212","demo_code":"123456","shop_type":"vegetable","city":"Hubli"})
     agent = call("POST",url("agent","/api/auth/demo-login"),{"phone":"9876543215","code":"123456","full_name":"E2E Agent","city":"Hubli"})
     assert shop["shop"]["approval_status"] == "pending"
