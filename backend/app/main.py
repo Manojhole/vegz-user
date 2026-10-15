@@ -901,6 +901,15 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     if remote_products:
         if len(remote_products) != len(products):
             raise HTTPException(status_code=400, detail="Refresh your basket before checkout; one or more items are from an outdated catalog.")
+        # Never dispatch a basket to shops outside the saved delivery address city.
+        try:
+            city_response = httpx.get(SHOP_SERVICE_URL + "/api/marketplace", params={"city": " ".join(address.city.split()).title()}, timeout=8.0)
+            city_response.raise_for_status()
+            city_shop_ids = {int(item["shop_id"]) for item in city_response.json()}
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            raise HTTPException(status_code=502, detail="Could not verify shop coverage for this delivery city. Please try again.") from exc
+        if any(product.shop_id not in city_shop_ids for product in remote_products):
+            raise HTTPException(status_code=409, detail=f"Your basket contains items outside {address.city}. Change your delivery address or refresh the catalog for {address.city}.")
         if not SHOP_SERVICE_URL or len(SHOP_INTERNAL_TOKEN) < 32 or not AGENT_SERVICE_URL or len(DISPATCH_SHARED_SECRET) < 32:
             raise HTTPException(status_code=503, detail="Multi-shop checkout is not configured. Set SHOP_SERVICE_URL, SHOP_INTERNAL_TOKEN, AGENT_SERVICE_URL and DISPATCH_SHARED_SECRET.")
         grouped: dict[int, list[dict]] = {}
