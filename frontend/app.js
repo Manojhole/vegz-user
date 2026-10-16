@@ -632,20 +632,6 @@ $("#yearLabel").textContent = String(new Date().getFullYear());
 const savedLanguage = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return null; } })();
 applyLanguage(savedLanguage || (String(navigator.language || "").toLowerCase().startsWith("kn") ? "kn" : "en"), false);
 $("#languageSelect")?.addEventListener("change", event => applyLanguage(event.target.value, true));
-const cityPicker = $("#deliveryCitySelect");
-if (cityPicker) {
-  cityPicker.value = selectedCity;
-  cityPicker.addEventListener("change", () => {
-    const nextCity = cityPicker.value;
-    if (nextCity === selectedCity) return;
-    selectedCity = nextCity;
-    try { localStorage.setItem(CITY_KEY, selectedCity); } catch (_) {}
-    cart = {};
-    saveCart();
-    renderCart();
-    loadProducts();
-  });
-}
 loadProducts();
 if (token) {
   request("/api/me").then((user) => { currentUser = user; }).catch(() => { token = ""; });
