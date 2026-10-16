@@ -756,6 +756,36 @@ def store_config():
     }
 
 
+@app.post("/api/internal/order-status")
+def internal_order_status(payload: dict, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    """Update the customer-visible order status from the authenticated delivery service."""
+    expected = DISPATCH_SHARED_SECRET
+    supplied = authorization.split(" ", 1)[1].strip() if authorization and authorization.lower().startswith("bearer ") else ""
+    if len(expected) < 32 or not secrets.compare_digest(supplied, expected):
+        raise HTTPException(status_code=401, detail="Delivery status sync authentication failed.")
+    tracking_code = str(payload.get("tracking_code", "")).strip()
+    status_value = str(payload.get("status", "")).strip().lower()
+    valid_statuses = {
+        "placed", "assigned", "accepted", "arrived_at_pickup", "picked_up",
+        "arrived_at_customer", "out_for_delivery", "delivered", "delivery_failed",
+        "declined", "cancelled",
+    }
+    if not tracking_code or len(tracking_code) > 32:
+        raise HTTPException(status_code=422, detail="A valid order tracking code is required.")
+    if status_value not in valid_statuses:
+        raise HTTPException(status_code=422, detail="Invalid delivery status.")
+    order = db.scalar(select(Order).where(Order.tracking_code == tracking_code))
+    if order is None:
+        raise HTTPException(status_code=404, detail="Customer order not found.")
+    order.status = status_value
+    if payload.get("payment_status") in {"pending", "paid", "failed", "refunded"}:
+        order.payment_status = str(payload["payment_status"])
+    order.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(order)
+    return _order_payload(order)
+
+
 @app.get("/api/health")
 def health():
     """Liveness endpoint that also verifies the configured SQL database is reachable."""
