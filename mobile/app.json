@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Vegz",
+    "slug": "vegz-customer",
+    "scheme": "vegz",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router"
+    ],
+    "android": {
+      "package": "online.vegz.customer"
+    },
+    "ios": {
+      "bundleIdentifier": "online.vegz.customer"
+    }
+  }
+}
