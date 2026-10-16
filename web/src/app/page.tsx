@@ -29,6 +29,7 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
+  const [city, setCity] = useState("Hubli");
   const [loading, setLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
@@ -51,7 +52,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_BASE}/api/products`, { signal: controller.signal })
+    fetch(`${API_BASE}/api/products?city=${encodeURIComponent(city)}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
         return response.json() as Promise<Product[]>;
@@ -71,7 +72,7 @@ export default function HomePage() {
       void loadAccount(savedToken, false);
     }
     return () => controller.abort();
-  }, []);
+  }, [city]);
 
   async function api<T>(path: string, session = "", init: RequestInit = {}): Promise<T> {
     const response = await fetch(API_BASE + path, {
@@ -193,6 +194,10 @@ export default function HomePage() {
       </section>
 
       <section id="catalog" className="catalog-section">
+        <div className="section-heading"><div><p className="eyebrow">YOUR DELIVERY CITY</p><h2>Shop your neighbourhood</h2></div></div>
+        <nav className="category-row" aria-label="Delivery city">
+          {["Hubli","Dharwad"].map((value)=><button key={value} className={city===value?"category active":"category"} onClick={()=>{setCity(value);setLoading(true);setCatalogError("");}}>{value}</button>)}
+        </nav>
         <div className="section-heading"><div><p className="eyebrow">THE DAILY MARKET</p><h2>What are we cooking?</h2></div><span className="catalog-count">{products.length} items</span></div>
         <nav className="category-row" aria-label="Product categories">
           {categories.map((value) => <button key={value} className={category === value ? "category active" : "category"} onClick={() => setCategory(value)}>{value}</button>)}
