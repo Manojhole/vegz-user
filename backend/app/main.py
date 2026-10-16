@@ -44,6 +44,53 @@ SHOP_PUBLIC_URL = os.getenv("SHOP_PUBLIC_URL", SHOP_SERVICE_URL).rstrip("/")
 SHOP_INTERNAL_TOKEN = os.getenv("SHOP_INTERNAL_TOKEN", "vegz-local-shop-order-token-change-before-production" if APP_ENV == "development" else "")
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://host.docker.internal:8001" if APP_ENV == "development" else "").rstrip("/")
 DISPATCH_SHARED_SECRET = os.getenv("DISPATCH_SHARED_SECRET", "vegz-local-agent-dispatch-token-change-before-production" if APP_ENV == "development" else "")
+ADMIN_SERVICE_URL = os.getenv("ADMIN_SERVICE_URL", "http://host.docker.internal:8000" if APP_ENV == "development" else "").rstrip("/")
+PARTNER_ADMIN_TOKEN = os.getenv("PARTNER_ADMIN_TOKEN", "vegz-local-partner-admin-token-change-before-production" if APP_ENV == "development" else "")
+
+
+def _sync_admin(path: str, payload: dict) -> None:
+    """Best-effort internal sync; customer checkout must not fail when admin is briefly unavailable."""
+    if not ADMIN_SERVICE_URL or len(PARTNER_ADMIN_TOKEN) < 32:
+        return
+    try:
+        response = httpx.post(
+            ADMIN_SERVICE_URL + path,
+            json=payload,
+            headers={"Authorization": "Bearer " + PARTNER_ADMIN_TOKEN},
+            timeout=4.0,
+        )
+        response.raise_for_status()
+    except (httpx.HTTPError, ValueError) as exc:
+        logger.warning("Admin sync failed for %s (%s).", path, type(exc).__name__)
+
+
+def _sync_admin_customer(user: User) -> None:
+    _sync_admin("/api/internal/customer-sync", {
+        "full_name": user.full_name or "Customer",
+        "phone": user.phone,
+        "external_ref": "vegz-user:" + str(user.id),
+    })
+
+
+def _sync_admin_order(order: Order, user: User, address: Address) -> None:
+    address_text = ", ".join(part for part in [
+        address.line1, address.line2, address.landmark, address.city,
+        address.state, address.postal_code,
+    ] if part)
+    _sync_admin("/api/internal/order-sync", {
+        "public_code": order.tracking_code,
+        "source": "customer",
+        "external_ref": "vegz-user:order:" + str(order.id),
+        "customer_name": address.recipient_name or user.full_name or "Customer",
+        "customer_phone": address.phone or user.phone,
+        "address": address_text,
+        "city": address.city,
+        "total_amount": str(order.total_amount),
+        "payment_status": order.payment_status,
+        "status": order.status,
+    })
+
+
 
 if APP_ENV == "production" and (
     JWT_SECRET == "local-dev-only-change-this-secret"
@@ -868,6 +915,7 @@ def verify_otp(payload: OtpVerify, db: Session = Depends(get_db)):
         db.flush()
     db.commit()
     db.refresh(user)
+    _sync_admin_customer(user)
     return {
         "access_token": _create_access_token(user.id),
         "token_type": "bearer",
@@ -1057,6 +1105,8 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
         ))
     db.commit()
     db.refresh(order)
+    _sync_admin_customer(user)
+    _sync_admin_order(order, user, address)
     result = _order_payload(order)
     if remote_products:
         result["shop_orders"] = shop_orders
