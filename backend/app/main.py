@@ -709,7 +709,20 @@ def list_products(category: str | None = Query(default=None, max_length=60), cit
         query = select(Product).where(Product.is_active.is_(True), Product.stock_qty > 0).order_by(Product.category, Product.name)
         if category and category.lower() != "all":
             query = query.where(Product.category == category)
-    return [_product_payload(product) for product in db.scalars(query).all()]
+    payloads = [_product_payload(product) for product in db.scalars(query).all()]
+    if SHOP_SERVICE_URL and not payloads:
+        # Keep the customer catalog discoverable when a city has no open/approved shops.
+        # These are display-only catalog entries; checkout is blocked until live service exists.
+        catalog_query = select(Product).where(Product.shop_id.is_(None)).order_by(Product.category, Product.name)
+        if category and category.lower() != "all":
+            catalog_query = catalog_query.where(Product.category == category)
+        payloads = []
+        for product in db.scalars(catalog_query).all():
+            item = _product_payload(product)
+            item["coming_soon"] = True
+            item["is_available"] = False
+            payloads.append(item)
+    return payloads
 
 
 @app.post("/api/auth/request-otp")
