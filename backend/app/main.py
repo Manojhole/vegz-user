@@ -914,6 +914,9 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
     )
     if address is None:
         raise HTTPException(status_code=404, detail="Choose a saved delivery address.")
+    delivery_city = " ".join(address.city.split()).casefold()
+    if delivery_city not in {"hubli", "dharwad"}:
+        raise HTTPException(status_code=409, detail=f"Vegz is coming soon to {address.city.strip()}. We currently deliver only in Hubli and Dharwad.")
     if APP_ENV == "production" and not SHOP_SERVICE_URL:
         raise HTTPException(status_code=503, detail="Live shop routing is not configured. Set SHOP_SERVICE_URL before accepting production orders.")
 
@@ -934,6 +937,8 @@ def create_order(payload: OrderIn, user: User = Depends(_require_user), db: Sess
             raise HTTPException(status_code=400, detail="One of your vegetables is no longer available.")
         if product.stock_qty < quantity:
             raise HTTPException(status_code=409, detail=f"Only {product.stock_qty} {product.unit} of {product.name} remain.")
+        if product.shop_id is None or product.remote_product_id is None:
+            raise HTTPException(status_code=409, detail=f"{product.name} is in the Vegz catalog but is not yet supplied by an active shop. Coming soon.")
         products[product_id] = product
 
     subtotal = Decimal("0.00")
