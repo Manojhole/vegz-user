@@ -64,8 +64,10 @@ def run():
     agent = call("POST",url("agent","/api/auth/demo-login"),{"phone":"9876543215","code":"123456","full_name":"E2E Agent","city":"Hubli"})
     assert shop["shop"]["approval_status"] == "pending"
     assert not agent["agent"]["is_verified"]
-    # Pending partners must never leak into the public marketplace.
-    assert call("GET",url("user","/api/products?city=Hubli")) == []
+    # Pending partners must not be orderable, but the built-in catalog and images stay visible.
+    hubli_catalog = call("GET",url("user","/api/products?city=Hubli"))
+    assert hubli_catalog and all(x.get("coming_soon") and x.get("is_available") is False for x in hubli_catalog)
+    assert all(x.get("image_url", "").startswith("https://") for x in hubli_catalog)
     # Shop identity is immutable after onboarding, even before approval.
     locked_city = call("PATCH",url("shop","/api/shop"),{"city":"Dharwad"},shop["access_token"],(403,))
     assert "fixed at registration" in locked_city["detail"]
@@ -87,7 +89,9 @@ def run():
     catalog = call("GET",url("user","/api/products?city=Hubli"))
     item = next(x for x in catalog if x["shop_id"] == st["id"] and x["name"] == "Tomato")
     assert item["price"] == 40 and item["stock_qty"] == 18
-    assert call("GET",url("user","/api/products?city=Dharwad")) == []
+    dharwad_catalog = call("GET",url("user","/api/products?city=Dharwad"))
+    assert dharwad_catalog and all(x.get("coming_soon") and x.get("is_available") is False for x in dharwad_catalog)
+    assert all(x.get("image_url", "").startswith("https://") for x in dharwad_catalog)
     call("PATCH",url("shop",f"/api/products/{product['id']}"),{"is_available":False},shop["access_token"])
     assert all(x["id"] != item["id"] for x in call("GET",url("user","/api/products?city=Hubli")))
     call("PATCH",url("shop",f"/api/products/{product['id']}"),{"is_available":True},shop["access_token"])
