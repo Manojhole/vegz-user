@@ -56,5 +56,45 @@ class CustomerMarketplaceIntegrationTests(unittest.TestCase):
         self.assertIn("live shop catalog", response.json()["detail"])
 
 
+    def test_delivery_status_sync_requires_shared_secret_and_updates_customer_order(self):
+        from backend.app.database import SessionLocal
+        from backend.app.models import Address, Order, User
+        from sqlalchemy import select
+
+        with SessionLocal() as db:
+            user = User(phone="+919900000991", full_name="Status Test Customer")
+            db.add(user)
+            db.flush()
+            address = Address(
+                user_id=user.id, label="Home", recipient_name="Status Test Customer",
+                phone=user.phone, line1="Market Road", line2="", landmark="",
+                city="Hubli", state="Karnataka", postal_code="580001", is_default=True,
+            )
+            db.add(address)
+            db.flush()
+            order = Order(
+                tracking_code="VGZ-STATUS-SYNC-9001", user_id=user.id, address_id=address.id,
+                subtotal=100, delivery_fee=25, total_amount=125,
+                payment_method="cod", payment_status="pending", status="placed",
+            )
+            db.add(order)
+            db.commit()
+            order_id = order.id
+
+        payload = {"tracking_code": "VGZ-STATUS-SYNC-9001", "status": "arrived_at_customer", "payment_status": "pending"}
+        with patch("backend.app.main.DISPATCH_SHARED_SECRET", "test-delivery-status-sync-token-long-enough"):
+            denied = client.post("/api/internal/order-status", json=payload)
+            self.assertEqual(denied.status_code, 401)
+            response = client.post(
+                "/api/internal/order-status",
+                headers={"Authorization": "Bearer test-delivery-status-sync-token-long-enough"},
+                json=payload,
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["status"], "arrived_at_customer")
+        with SessionLocal() as db:
+            saved = db.scalar(select(Order).where(Order.id == order_id))
+            self.assertEqual(saved.status, "arrived_at_customer")
+
 if __name__ == "__main__":
     unittest.main()
