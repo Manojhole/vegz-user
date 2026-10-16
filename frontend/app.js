@@ -66,6 +66,44 @@ function escapeHtml(value) {
 }
 function currency(value) { return money.format(Number(value || 0)); }
 function iconFor(product) { return productIcons[product.slug] || "🥦"; }
+
+// Stable, product-specific fallbacks keep the catalog useful when a remote photo is
+// missing, blocked, or returns an error. The emoji remains the final offline fallback.
+const PRODUCT_IMAGE_FALLBACKS = {
+  tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=80",
+  potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=80",
+  "red-onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=80",
+  carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=80",
+  spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=80",
+  cucumber:"https://images.unsplash.com/photo-1604977042946-1eecc30f269e?auto=format&fit=crop&w=700&q=80",
+  "cooking-oil":"https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=700&q=80",
+  coffee:"https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=700&q=80",
+  coconut:"https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=700&q=80",
+  ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=80",
+  garlic:"https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=700&q=80",
+  "basmati-rice":"https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=80",
+  "toor-dal":"https://images.unsplash.com/photo-1515543904379-3d757abe4e6e?auto=format&fit=crop&w=700&q=80"
+};
+function imageForProduct(product, index = 0) {
+  const candidates = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : []));
+  const candidate = candidates[index] || candidates[0] || "";
+  if (candidate) return candidate;
+  return PRODUCT_IMAGE_FALLBACKS[product.slug] || "";
+}
+function attachProductImageFallbacks(root) {
+  root.querySelectorAll(".product-image img").forEach((image) => {
+    image.addEventListener("error", () => {
+      const product = products.find((item) => String(item.id) === image.closest("[data-gallery-main]")?.dataset.galleryMain);
+      const fallback = product && PRODUCT_IMAGE_FALLBACKS[product.slug];
+      if (fallback && image.dataset.fallbackTried !== "1" && image.src !== fallback) {
+        image.dataset.fallbackTried = "1";
+        image.src = fallback;
+      } else {
+        image.parentElement.classList.add("image-fallback");
+      }
+    });
+  });
+}
 function departmentFor(product) {
   const category = String(product.category || "").trim().toLowerCase();
   return category === "grocery" || category === "spices" ? "grocery" : "vegetables";
@@ -181,7 +219,7 @@ function renderProducts() {
     lastShopGroup = shopGroup;
     const qty = Number(cart[product.id] || 0);
     const images = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])).slice(0, 3);
-    const image = escapeHtml(images[0] || "");
+    const image = escapeHtml(images[0] || imageForProduct(product));
     const gallery = images.length > 1 ? '<div class="product-photo-thumbs">' + images.slice(1).map((url, imageIndex) => '<button class="product-photo-thumb" data-gallery-product="' + product.id + '" data-gallery-index="' + (imageIndex + 1) + '" type="button" aria-label="View photo ' + (imageIndex + 2) + ' of ' + escapeHtml(product.name) + '"><img src="' + escapeHtml(url) + '" alt="" loading="lazy"></button>').join("") + '</div>' : "";
     const name = escapeHtml(localizedName(product.name));
     const imageClass = image ? "product-image" : "product-image image-fallback";
@@ -193,9 +231,9 @@ function renderProducts() {
         ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
         : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>')) + '</div></div></article>';
   }).join("");
+  attachProductImageFallbacks($("#productGrid"));
   $("#productGrid .product-image img").forEach((image) => {
-    image.addEventListener("error", () => image.parentElement.classList.add("image-fallback"), { once: true });
-    if (image.complete && image.naturalWidth === 0) image.parentElement.classList.add("image-fallback");
+    if (image.complete && image.naturalWidth === 0) image.dispatchEvent(new Event("error"));
   });
   $("#productGrid [data-gallery-product]").forEach((button) => button.addEventListener("click", () => {
     const product = products.find((item) => String(item.id) === button.dataset.galleryProduct);
@@ -234,7 +272,7 @@ function renderCart() {
     $("#cartItems").innerHTML = '<div class="empty-cart"><span class="empty-cart-art">🥬</span><strong>Your basket is taking a nap</strong><p>Add some fresh favourites and they will show up here.</p></div>';
   } else {
     $("#cartItems").innerHTML = entries.map(({ product, quantity }) => {
-      const image = escapeHtml(product.image_url || "");
+      const image = escapeHtml(product.image_url || imageForProduct(product));
       return '<div class="cart-row"><div class="cart-thumb' + (image ? '' : ' fallback') + '">' + (image ? '<img src="' + image + '" alt="">' : '') + '<span aria-hidden="true">' + iconFor(product) + '</span></div>' +
         '<div><div class="cart-row-name">' + escapeHtml(localizedName(product.name)) + '</div><div class="cart-row-price">' + currency(product.price) + ' / ' + escapeHtml(product.unit) + '</div>' +
         '<div class="quantity-controls"><button type="button" data-minus="' + product.id + '" aria-label="Decrease ' + escapeHtml(product.name) + ' quantity">−</button><span>' + quantity + '</span><button type="button" data-add="' + product.id + '" aria-label="Increase ' + escapeHtml(product.name) + ' quantity">+</button></div></div>' +
