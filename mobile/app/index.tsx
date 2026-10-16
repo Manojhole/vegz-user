@@ -1,68 +1,176 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, SafeAreaView, ScrollView, Text, View, Pressable, StyleSheet } from "react-native";
-
-type Product = {
-  id: number | string;
-  name: string;
-  category?: string;
-  image_url?: string;
-  price: number | string;
-  unit?: string;
-  is_available?: boolean;
-  coming_soon?: boolean;
-  shop_name?: string;
-};
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 const API_BASE = (process.env.EXPO_PUBLIC_VEGZ_API_URL || "http://10.0.2.2:8003").replace(/\/$/, "");
+type Product = { id: number | string; name: string; category?: string; description?: string; image_url?: string; price: number | string; unit?: string; stock_qty?: number; shop_id?: number | null; shop_name?: string };
+type Address = { id: number; label: string; recipient_name: string; phone: string; line1: string; line2: string; landmark: string; city: string; state: string; postal_code: string; is_default: boolean };
+type Customer = { id: number; phone: string; full_name?: string | null };
+type Order = { id: number; tracking_code: string; total_amount: number; status: string; payment_status: string; created_at: string };
+type Json = Record<string, unknown>;
+const EMPTY_ADDRESS = {label:"Home",recipient_name:"",phone:"",line1:"",line2:"",landmark:"",city:"Hubli",state:"Karnataka",postal_code:"",is_default:true};
+
+async function api<T>(path: string, token = "", init: RequestInit = {}): Promise<T> {
+  const response = await fetch(API_BASE + path, { ...init, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(init.headers || {}) } });
+  const data = await response.json().catch(() => ({} as Json));
+  if (!response.ok) throw new Error(String((data as Json).detail || `Request failed (${response.status})`));
+  return data as T;
+}
 
 export default function Home() {
   const [items, setItems] = useState<Product[]>([]);
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [category, setCategory] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [token, setToken] = useState("");
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [demoOtp, setDemoOtp] = useState("");
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [address, setAddress] = useState(EMPTY_ADDRESS);
+  const [paymentMethod, setPaymentMethod] = useState<"cod"|"online">("cod");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [orderNotice, setOrderNotice] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(25);
+  const [freeMinimum, setFreeMinimum] = useState(499);
 
-  useEffect(() => {
-    let active = true;
-    fetch(`${API_BASE}/api/products`)
-      .then((response) => {
-        if (!response.ok) throw new Error("Catalog request failed");
-        return response.json() as Promise<Product[]>;
-      })
-      .then((data) => { if (active) setItems(Array.isArray(data) ? data : []); })
-      .catch(() => { if (active) setError("Cannot connect to Vegz API. Set EXPO_PUBLIC_VEGZ_API_URL to your computer's LAN IP for a physical phone."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+  const loadAccount = useCallback(async (session: string) => {
+    try {
+      const [me, savedAddresses, savedOrders] = await Promise.all([
+        api<Customer>("/api/me", session), api<Address[]>("/api/addresses", session), api<Order[]>("/api/orders", session),
+      ]);
+      setCustomer(me); setAddresses(savedAddresses); setOrders(savedOrders);
+      setSelectedAddressId((current) => current ?? savedAddresses.find((a) => a.is_default)?.id ?? savedAddresses[0]?.id ?? null);
+    } catch {
+      await SecureStore.deleteItemAsync("vegz-customer-token");
+      setToken(""); setCustomer(null);
+    }
   }, []);
 
-  const total = useMemo(() => items.reduce((sum, item) => sum + Number(item.price || 0) * (qty[String(item.id)] || 0), 0), [items, qty]);
+  const loadCatalog = useCallback(async () => {
+    const data = await api<Product[]>("/api/products");
+    setItems(Array.isArray(data) ? data : []);
+  }, []);
+
+  useEffect(() => {
+    loadCatalog().catch((e) => setError(e instanceof Error ? e.message : "Catalog unavailable.")).finally(() => setLoading(false));
+    api<{delivery_fee?:number;free_delivery_minimum?:number}>("/api/store-config").then((config) => {
+      setDeliveryFee(Number(config.delivery_fee ?? 25)); setFreeMinimum(Number(config.free_delivery_minimum ?? 499));
+    }).catch(() => undefined);
+    SecureStore.getItemAsync("vegz-customer-token").then(async (saved) => {
+      if (saved) { setToken(saved); await loadAccount(saved); }
+    }).catch(() => undefined);
+  }, [loadAccount, loadCatalog]);
+
+  const categories = useMemo(() => ["All", ...Array.from(new Set(items.map((item) => item.category).filter((v): v is string => Boolean(v))))], [items]);
+  const visibleItems = category === "All" ? items : items.filter((item) => item.category === category);
+  const basket = items.filter((item) => (qty[String(item.id)] || 0) > 0);
   const count = Object.values(qty).reduce((sum, value) => sum + value, 0);
+  const subtotal = basket.reduce((sum, item) => sum + Number(item.price || 0) * (qty[String(item.id)] || 0), 0);
+  const fee = subtotal === 0 || subtotal >= freeMinimum ? 0 : deliveryFee;
+  const total = subtotal + fee;
+
+  function changeQty(item: Product, value: number) {
+    const id = String(item.id); const max = Math.min(99, item.stock_qty ?? 99);
+    setQty((old) => ({...old,[id]:Math.max(0,Math.min(max,value))}));
+  }
+  async function requestOtp() {
+    setBusy(true); setCheckoutError("");
+    try {
+      const result = await api<{demo_otp?:string}>("/api/auth/request-otp","",{method:"POST",body:JSON.stringify({phone})});
+      setOtpSent(true); setDemoOtp(result.demo_otp || ""); if(result.demo_otp)setOtp(result.demo_otp);
+    } catch(e) { setCheckoutError(e instanceof Error?e.message:"Could not request a verification code."); }
+    finally { setBusy(false); }
+  }
+  async function verifyOtp() {
+    setBusy(true); setCheckoutError("");
+    try {
+      const result = await api<{access_token:string;user:Customer}>("/api/auth/verify-otp","",{method:"POST",body:JSON.stringify({phone,otp})});
+      await SecureStore.setItemAsync("vegz-customer-token",result.access_token);
+      setToken(result.access_token); setCustomer(result.user);
+      setAddress((old)=>({...old,phone:result.user.phone,recipient_name:result.user.full_name||""}));
+      await loadAccount(result.access_token);
+    } catch(e) { setCheckoutError(e instanceof Error?e.message:"Verification failed."); }
+    finally { setBusy(false); }
+  }
+  async function placeOrder() {
+    if(!token){setCheckoutError("Verify your phone number first.");return;}
+    if(!basket.length){setCheckoutError("Add items to your basket first.");return;}
+    if(!selectedAddressId&&!["hubli","dharwad"].includes(address.city.trim().toLowerCase())){setCheckoutError(`Vegz is coming soon to ${address.city}. We currently deliver only in Hubli and Dharwad.`);return;}
+    setBusy(true);setCheckoutError("");setOrderNotice("");
+    try {
+      let addressId=selectedAddressId;
+      if(addressId===null){
+        const saved=await api<Address>("/api/addresses",token,{method:"POST",body:JSON.stringify(address)});
+        addressId=saved.id;setAddresses((old)=>[saved,...old]);
+      }
+      const orderItems=basket.map((item)=>({product_id:Number(item.id),...(item.shop_id!=null?{shop_id:Number(item.shop_id)}:{}),quantity:qty[String(item.id)]}));
+      if(orderItems.some((item)=>!Number.isInteger(item.product_id)))throw new Error("Refresh your basket before ordering.");
+      const result=await api<Order>("/api/orders",token,{method:"POST",body:JSON.stringify({address_id:addressId,payment_method:paymentMethod,items:orderItems})});
+      setOrderNotice(`Order ${result.tracking_code} placed · ${result.status.replace(/_/g," ")}${paymentMethod==="online"?" · Online payment is still pending gateway integration.":""}`);
+      setQty({});setCheckoutOpen(false);await loadAccount(token);
+    }catch(e){setCheckoutError(e instanceof Error?e.message:"Order could not be placed.");}
+    finally{setBusy(false);}
+  }
 
   return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.page}>
-    <View style={s.header}><Text style={s.brand}>vegz<Text style={s.period}>.</Text></Text><Text style={s.basket}>{count} in basket</Text></View>
-    <Text style={s.eyebrow}>YOUR NEIGHBOURHOOD MARKET</Text>
-    <Text style={s.title}>Fresh market finds, delivered.</Text>
-    <Text style={s.sub}>Vegetables and everyday groceries from local stores in your city.</Text>
-    <View style={s.service}><Text style={s.serviceIcon}>🛵</Text><View><Text style={s.serviceTitle}>Local stores. One basket.</Text><Text style={s.muted}>Starting with Hubli and Dharwad</Text></View></View>
+    <View style={s.header}><Text style={s.brand}>vegz<Text style={s.period}>.</Text></Text><Text style={s.basketCount}>{count} in basket</Text></View>
+    <Text style={s.eyebrow}>YOUR NEIGHBOURHOOD MARKET</Text><Text style={s.title}>Fresh market finds, delivered.</Text><Text style={s.sub}>Vegetables and everyday groceries from local stores in your city.</Text>
+    <View style={s.marketHero}><Text style={s.heroEmoji}>🥬  🥕  🍅</Text><View><Text style={s.heroTitle}>Local stores. One basket.</Text><Text style={s.muted}>Starting with Hubli and Dharwad</Text></View></View>
     <View style={s.sectionHead}><Text style={s.sectionTitle}>Today's market</Text><Text style={s.muted}>{items.length} products</Text></View>
-    {loading && <View style={s.message}><ActivityIndicator color="#176b48" /><Text style={s.muted}>Loading fresh picks…</Text></View>}
-    {!!error && <View style={s.error}><Text style={s.errorText}>{error}</Text><Pressable style={s.retry} onPress={() => { setLoading(true); setError(""); fetch(`${API_BASE}/api/products`).then(r=>{if(!r.ok) throw new Error();return r.json() as Promise<Product[]>}).then(data=>setItems(Array.isArray(data)?data:[])).catch(()=>setError("Still unable to reach the API. Check your URL and network.")).finally(()=>setLoading(false)); }}><Text style={s.retryText}>Retry</Text></Pressable></View>}
-    {!loading && !error && items.length === 0 && <Text style={s.muted}>No products available yet.</Text>}
-    {items.map((item) => {
-      const id = String(item.id);
-      const quantity = qty[id] || 0;
-      const unavailable = item.is_available === false || item.coming_soon === true;
-      return <View key={id} style={s.card}>
-        {item.image_url ? <Image source={{ uri: item.image_url }} style={s.image} /> : <View style={[s.image, s.imagePlaceholder]}><Text style={{fontSize:28}}>🥬</Text></View>}
-        <View style={s.productInfo}><Text style={s.category}>{item.category || "Market fresh"}</Text><Text style={s.name}>{item.name}</Text><Text style={s.muted}>{item.shop_name || "Local Vegz market"}</Text><View style={s.productBottom}><Text style={s.price}>₹{Number(item.price || 0).toFixed(2)} <Text style={s.unit}>/ {item.unit || "item"}</Text></Text>
-          {unavailable ? <Text style={s.soon}>Coming soon</Text> : <View style={s.controls}><Pressable accessibilityLabel={"Remove "+item.name} style={s.button} onPress={()=>setQty(old=>({...old,[id]:Math.max(0,quantity-1)}))}><Text style={s.buttonText}>−</Text></Pressable><Text style={s.qty}>{quantity}</Text><Pressable accessibilityLabel={"Add "+item.name} style={[s.button,s.plus]} onPress={()=>setQty(old=>({...old,[id]:quantity+1}))}><Text style={[s.buttonText,s.plusText]}>+</Text></Pressable></View>}
-        </View></View>
-      );
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categories}>{categories.map((value)=><Pressable key={value} onPress={()=>setCategory(value)} style={[s.category,category===value&&s.categoryActive]}><Text style={[s.categoryText,category===value&&s.categoryTextActive]}>{value}</Text></Pressable>)}</ScrollView>
+    {loading&&<View style={s.message}><ActivityIndicator color="#176b48"/><Text style={s.muted}>Loading fresh picks…</Text></View>}
+    {!!error&&<Text style={s.error}>{error}<Text onPress={()=>{setLoading(true);setError("");loadCatalog().catch((e)=>setError(e instanceof Error?e.message:"Catalog unavailable.")).finally(()=>setLoading(false));}}>  Retry</Text></Text>}
+    {!loading&&!error&&visibleItems.length===0&&<Text style={s.muted}>No products in this category yet.</Text>}
+    {visibleItems.map((item)=>{
+      const id=String(item.id), quantity=qty[id]||0, unavailable=item.shop_id==null||(item.stock_qty??0)<=0;
+      return <View key={id} style={s.productCard}>
+        {item.image_url?<Image source={{uri:item.image_url}} style={s.image}/>:<View style={[s.image,s.imagePlaceholder]}><Text style={{fontSize:36}}>🥦</Text></View>}
+        <View style={s.productInfo}><Text style={s.categoryLabel}>{item.category||"Market fresh"}</Text><Text style={s.name}>{item.name}</Text><Text style={s.muted}>{item.shop_name||"Local Vegz market"}</Text>
+          <View style={s.productBottom}><Text style={s.price}>₹{Number(item.price||0).toFixed(2)} <Text style={s.unit}>/ {item.unit||"item"}</Text></Text>
+            {unavailable?<Text style={s.soon}>Coming soon</Text>:quantity===0?<Pressable style={s.add} onPress={()=>changeQty(item,1)}><Text style={s.addText}>+ Add</Text></Pressable>:<View style={s.controls}><Pressable style={s.qtyButton} onPress={()=>changeQty(item,quantity-1)}><Text style={s.qtyButtonText}>−</Text></Pressable><Text style={s.qtyText}>{quantity}</Text><Pressable style={s.qtyButton} disabled={quantity>=Math.min(99,item.stock_qty??99)} onPress={()=>changeQty(item,quantity+1)}><Text style={s.qtyButtonText}>+</Text></Pressable></View>}
+          </View>
+        </View>
+      </View>;
     })}
-    <View style={s.total}><View><Text style={s.totalLabel}>Basket estimate</Text><Text style={s.muted}>{count} items selected</Text></View><Text style={s.totalPrice}>₹{total.toFixed(2)}</Text></View>
-    <Text style={s.note}>Catalog is connected to the API. Checkout, OTP and payments will be enabled after end-to-end testing.</Text>
+    <View style={s.total}><View><Text style={s.totalLabel}>Basket estimate</Text><Text style={s.muted}>{count} items · {fee===0?"Free delivery":`Delivery ₹${fee.toFixed(2)}`}</Text></View><View style={s.totalRight}><Text style={s.totalPrice}>₹{total.toFixed(2)}</Text><Pressable style={[s.action,count===0&&s.disabled]} disabled={count===0} onPress={()=>{setCheckoutError("");setCheckoutOpen(true);}}><Text style={s.actionText}>Checkout →</Text></Pressable></View></View>
+    {checkoutOpen&&<View style={s.checkout}><View style={s.sectionHead}><Text style={s.sectionTitle}>Checkout</Text><Pressable onPress={()=>setCheckoutOpen(false)}><Text style={s.link}>Close ×</Text></Pressable></View>
+      {!token?<View style={s.formCard}><Text style={s.cardTitle}>Verify your mobile number</Text><TextInput style={s.input} value={phone} onChangeText={setPhone} placeholder="+91 mobile number" keyboardType="phone-pad"/>
+        {!otpSent?<Action label="Send verification code" onPress={requestOtp} disabled={busy||phone.trim().length<10}/>:<><TextInput style={s.input} value={otp} onChangeText={setOtp} placeholder="6-digit code" keyboardType="number-pad" maxLength={6}/>{!!demoOtp&&<Text style={s.demoCode}>Development OTP: {demoOtp}</Text>}<Action label="Verify and continue" onPress={verifyOtp} disabled={busy||otp.length!==6}/></>}
+      </View>:<View style={s.formCard}>
+        <Text style={s.cardTitle}>Delivery address</Text><Text style={s.muted}>Signed in as {customer?.phone||phone}. Delivery is available in Hubli and Dharwad.</Text>
+        {addresses.length>0&&<><Text style={s.label}>Saved address</Text><View style={s.choiceRow}>{addresses.map(a=><Pressable key={a.id} onPress={()=>setSelectedAddressId(a.id)} style={[s.choice,selectedAddressId===a.id&&s.choiceActive]}><Text style={[s.choiceText,selectedAddressId===a.id&&s.choiceTextActive]}>{a.label}: {a.line1}, {a.city}</Text></Pressable>)}<Pressable onPress={()=>setSelectedAddressId(null)} style={[s.choice,selectedAddressId===null&&s.choiceActive]}><Text style={[s.choiceText,selectedAddressId===null&&s.choiceTextActive]}>+ New</Text></Pressable></View></>}
+        {selectedAddressId===null&&<><Text style={s.label}>Recipient name</Text><TextInput style={s.input} value={address.recipient_name} onChangeText={v=>setAddress({...address,recipient_name:v})} placeholder="Full name"/>
+          <Text style={s.label}>Contact phone</Text><TextInput style={s.input} value={address.phone} onChangeText={v=>setAddress({...address,phone:v})} placeholder="+91 mobile number" keyboardType="phone-pad"/>
+          <Text style={s.label}>Address line</Text><TextInput style={s.input} value={address.line1} onChangeText={v=>setAddress({...address,line1:v})} placeholder="Flat, house, street"/>
+          <Text style={s.label}>Landmark (optional)</Text><TextInput style={s.input} value={address.landmark} onChangeText={v=>setAddress({...address,landmark:v})} placeholder="Near…"/>
+          <Text style={s.label}>City</Text><TextInput style={s.input} value={address.city} onChangeText={v=>setAddress({...address,city:v})} placeholder="Hubli or Dharwad"/>
+          {!["hubli","dharwad"].includes(address.city.trim().toLowerCase())&&<Text style={s.citySoon}>Coming soon to {address.city||"your city"} — we currently serve Hubli and Dharwad.</Text>}
+          <View style={s.choiceRow}><View style={s.fieldHalf}><Text style={s.label}>State</Text><TextInput style={s.input} value={address.state} onChangeText={v=>setAddress({...address,state:v})}/></View><View style={s.fieldHalf}><Text style={s.label}>PIN code</Text><TextInput style={s.input} value={address.postal_code} onChangeText={v=>setAddress({...address,postal_code:v})} keyboardType="number-pad"/></View></View>
+        </>}
+        <Text style={s.label}>Payment method</Text><View style={s.choiceRow}><Pressable style={[s.choice,paymentMethod==="cod"&&s.choiceActive]} onPress={()=>setPaymentMethod("cod")}><Text style={[s.choiceText,paymentMethod==="cod"&&s.choiceTextActive]}>Cash on delivery</Text></Pressable><Pressable style={[s.choice,paymentMethod==="online"&&s.choiceActive]} onPress={()=>setPaymentMethod("online")}><Text style={[s.choiceText,paymentMethod==="online"&&s.choiceTextActive]}>Online · pending</Text></Pressable></View>
+        {paymentMethod==="online"&&<Text style={s.muted}>No online payment will be collected until a gateway is connected.</Text>}
+        <Action label={busy?"Placing order…":`Place order · ₹${total.toFixed(2)}`} onPress={placeOrder} disabled={busy||!basket.length||(selectedAddressId===null&&(!address.recipient_name.trim()||!address.phone.trim()||address.line1.trim().length<4||address.postal_code.trim().length<4||!["hubli","dharwad"].includes(address.city.trim().toLowerCase())))}/>
+      </View>}
+      {!!checkoutError&&<Text style={s.error}>{checkoutError}</Text>}
+      <View style={s.formCard}><Text style={s.cardTitle}>Order summary</Text>{basket.map(item=><View key={item.id} style={s.summaryRow}><Text style={s.summaryText}>{item.name} × {qty[String(item.id)]}</Text><Text style={s.summaryText}>₹{(Number(item.price)*qty[String(item.id)]).toFixed(2)}</Text></View>)}<View style={s.summaryRow}><Text style={s.summaryText}>Delivery fee</Text><Text style={s.summaryText}>{fee===0?"FREE":"₹"+fee.toFixed(2)}</Text></View><Text style={s.totalPrice}>₹{total.toFixed(2)}</Text></View>
+    </View>}
+    <View style={s.sectionHead}><Text style={s.sectionTitle}>Your orders</Text>{!!token&&<Pressable onPress={()=>loadAccount(token)}><Text style={s.link}>Refresh</Text></Pressable>}</View>
+    {!!orderNotice&&<Text style={s.notice}>{orderNotice}</Text>}
+    {!token?<Text style={s.muted}>Verify your phone at checkout to see order history.</Text>:orders.length===0?<Text style={s.muted}>No orders yet. Your order status will appear here after ordering.</Text>:orders.map(order=><View key={order.id} style={s.orderCard}><View style={s.orderRow}><Text style={s.orderCode}>{order.tracking_code}</Text><Text style={s.status}>{order.status.replace(/_/g," ")}</Text></View><Text style={s.price}>₹{Number(order.total_amount).toFixed(2)}</Text><Text style={s.muted}>Payment: {order.payment_status.replace(/_/g," ")} · {new Date(order.created_at).toLocaleString()}</Text></View>)}
+    <Text style={s.note}>Vegz connects local vegetable and grocery shops with neighbourhood customers. Online payment and live GPS require production integrations.</Text>
   </ScrollView></SafeAreaView>;
 }
 
-const s = StyleSheet.create({
-  safe:{flex:1,backgroundColor:"#f6f8f1"},page:{padding:18,paddingTop:24,paddingBottom:38},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:32},brand:{fontSize:29,fontWeight:"900",color:"#176b48"},period:{color:"#ef8a36"},basket:{fontSize:12,fontWeight:"700",color:"#176b48",backgroundColor:"#e4f1e5",paddingVertical:8,paddingHorizontal:12,borderRadius:20},eyebrow:{fontSize:10,fontWeight:"800",letterSpacing:2,color:"#176b48"},title:{fontSize:34,lineHeight:39,fontWeight:"900",color:"#1b3027",marginTop:10},sub:{fontSize:14,lineHeight:21,color:"#718077",marginTop:10,marginBottom:20},service:{flexDirection:"row",alignItems:"center",gap:13,padding:15,borderRadius:16,backgroundColor:"#e6efdf",marginBottom:28},serviceIcon:{fontSize:28},serviceTitle:{fontSize:14,fontWeight:"800",color:"#1b3027"},muted:{fontSize:11,color:"#718077",marginTop:4},sectionHead:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:14},sectionTitle:{fontSize:22,fontWeight:"800",color:"#1b3027"},card:{flexDirection:"row",gap:12,padding:11,backgroundColor:"#fff",borderRadius:15,borderWidth:1,borderColor:"#e2e9df",marginBottom:11},image:{width:84,height:92,borderRadius:11,backgroundColor:"#eef2e8"},imagePlaceholder:{alignItems:"center",justifyContent:"center"},productInfo:{flex:1,justifyContent:"center"},category:{fontSize:9,fontWeight:"800",color:"#176b48",textTransform:"uppercase",letterSpacing:1},name:{fontSize:15,fontWeight:"800",color:"#1b3027",marginTop:4},productBottom:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:4,marginTop:10},price:{fontSize:14,fontWeight:"800",color:"#1b3027"},unit:{fontSize:10,fontWeight:"400",color:"#718077"},controls:{flexDirection:"row",alignItems:"center",gap:8},button:{width:27,height:27,alignItems:"center",justifyContent:"center",borderRadius:8,borderWidth:1,borderColor:"#d4e7d1",backgroundColor:"#eff6ed"},plus:{backgroundColor:"#176b48",borderColor:"#176b48"},buttonText:{fontSize:18,color:"#176b48",fontWeight:"700"},plusText:{color:"#fff"},qty:{minWidth:12,textAlign:"center",fontSize:12,fontWeight:"700",color:"#1b3027"},soon:{fontSize:10,color:"#9b5118"},total:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",padding:17,backgroundColor:"#e6efdf",borderRadius:16,marginTop:12},totalLabel:{fontSize:14,fontWeight:"800",color:"#1b3027"},totalPrice:{fontSize:22,fontWeight:"900",color:"#176b48"},note:{fontSize:11,lineHeight:17,color:"#718077",marginTop:18},message:{padding:24,alignItems:"center",gap:10},error:{padding:15,backgroundColor:"#fff0ed",borderRadius:12,marginBottom:15},errorText:{color:"#9b2c2c",fontSize:12,lineHeight:18},retry:{alignSelf:"flex-start",marginTop:10,backgroundColor:"#176b48",paddingVertical:8,paddingHorizontal:12,borderRadius:8},retryText:{color:"#fff",fontWeight:"700",fontSize:12}
+function Action({label,onPress,disabled=false}:{label:string;onPress:()=>void;disabled?:boolean}){return <Pressable onPress={onPress} disabled={disabled} style={[s.action,disabled&&s.disabled]}><Text style={s.actionText}>{label}</Text></Pressable>}
+
+const s=StyleSheet.create({
+ safe:{flex:1,backgroundColor:"#f6f8f1"},page:{padding:16,paddingTop:22,paddingBottom:42,gap:13},header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:18},brand:{fontSize:29,fontWeight:"900",color:"#176b48",letterSpacing:-1},period:{color:"#ef8a36"},basketCount:{fontSize:12,fontWeight:"800",color:"#176b48",backgroundColor:"#e4f1e5",paddingHorizontal:12,paddingVertical:8,borderRadius:20},eyebrow:{fontSize:10,fontWeight:"900",letterSpacing:2,color:"#176b48"},title:{fontSize:35,lineHeight:40,fontWeight:"900",letterSpacing:-1,color:"#1b3027",marginTop:1},sub:{fontSize:14,lineHeight:21,color:"#718077",marginTop:-6},marketHero:{backgroundColor:"#e6efda",borderRadius:16,padding:16,flexDirection:"row",alignItems:"center",gap:12},heroEmoji:{fontSize:22},heroTitle:{fontSize:15,fontWeight:"900",color:"#1b3027"},sectionHead:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginTop:10},sectionTitle:{fontSize:21,fontWeight:"900",color:"#1b3027"},muted:{fontSize:12,lineHeight:18,color:"#718077",marginTop:4},categories:{gap:8,paddingVertical:6},category:{paddingHorizontal:14,paddingVertical:9,borderRadius:20,borderWidth:1,borderColor:"#dbe5d8",backgroundColor:"#fff"},categoryActive:{backgroundColor:"#176b48",borderColor:"#176b48"},categoryText:{fontSize:12,fontWeight:"700",color:"#53655a"},categoryTextActive:{color:"#fff"},message:{flexDirection:"row",alignItems:"center",gap:10,padding:20},error:{color:"#a33525",backgroundColor:"#fff0ed",padding:12,borderRadius:10,fontSize:12,lineHeight:18},productCard:{flexDirection:"row",gap:12,backgroundColor:"#fff",borderRadius:15,borderWidth:1,borderColor:"#e2e9df",padding:10},image:{width:104,height:110,borderRadius:11,resizeMode:"cover",backgroundColor:"#eef2e8"},imagePlaceholder:{alignItems:"center",justifyContent:"center"},productInfo:{flex:1,justifyContent:"center",gap:4,minWidth:0},categoryLabel:{fontSize:9,fontWeight:"900",letterSpacing:1,color:"#176b48",textTransform:"uppercase"},name:{fontSize:16,fontWeight:"900",color:"#1b3027"},productBottom:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:6,marginTop:7},price:{fontSize:15,fontWeight:"900",color:"#176b48"},unit:{fontSize:10,fontWeight:"400",color:"#718077"},add:{backgroundColor:"#edf5e9",borderRadius:9,borderWidth:1,borderColor:"#d4e7d1",paddingHorizontal:13,paddingVertical:8},addText:{fontSize:12,fontWeight:"900",color:"#176b48"},controls:{flexDirection:"row",alignItems:"center",gap:11,borderRadius:9,borderWidth:1,borderColor:"#d4e7d1",padding:3},qtyButton:{width:27,height:27,backgroundColor:"#edf5e9",borderRadius:7,alignItems:"center",justifyContent:"center"},qtyButtonText:{fontSize:17,fontWeight:"900",color:"#176b48"},qtyText:{fontSize:13,fontWeight:"900",color:"#176b48"},soon:{fontSize:10,fontWeight:"900",color:"#96531c",backgroundColor:"#fff4e7",padding:7,borderRadius:7,overflow:"hidden"},total:{backgroundColor:"#e6efdf",borderRadius:17,padding:16,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:5},totalLabel:{fontSize:15,fontWeight:"900",color:"#1b3027"},totalRight:{alignItems:"flex-end",gap:4},totalPrice:{fontSize:23,fontWeight:"900",color:"#176b48"},action:{backgroundColor:"#176b48",paddingVertical:13,paddingHorizontal:15,borderRadius:11,alignItems:"center",justifyContent:"center",marginTop:6},actionText:{fontSize:13,fontWeight:"900",color:"#fff"},disabled:{opacity:.45},checkout:{gap:12,backgroundColor:"#edf4e7",padding:12,borderRadius:18,marginTop:4},formCard:{backgroundColor:"#fff",padding:14,borderRadius:14,borderWidth:1,borderColor:"#e2e9df",gap:8},cardTitle:{fontSize:16,fontWeight:"900",color:"#1b3027",marginBottom:2},input:{borderWidth:1,borderColor:"#dbe5d8",borderRadius:10,paddingHorizontal:12,paddingVertical:11,fontSize:14,color:"#1b3027",backgroundColor:"#fbfcfa"},label:{fontSize:12,fontWeight:"800",color:"#445548",marginTop:3},demoCode:{fontSize:12,color:"#8b4e1c",backgroundColor:"#fff4e7",padding:10,borderRadius:8},choiceRow:{flexDirection:"row",alignItems:"stretch",gap:7,flexWrap:"wrap"},choice:{borderWidth:1,borderColor:"#dbe5d8",backgroundColor:"#fff",borderRadius:9,padding:10},choiceActive:{backgroundColor:"#e6f1e3",borderColor:"#176b48"},choiceText:{fontSize:11,fontWeight:"700",color:"#53655a"},choiceTextActive:{color:"#176b48"},fieldHalf:{flex:1,minWidth:120},citySoon:{color:"#8a4e1c",backgroundColor:"#fff4e6",padding:10,borderRadius:8,fontSize:12,lineHeight:17},link:{color:"#176b48",fontSize:12,fontWeight:"900"},summaryRow:{flexDirection:"row",justifyContent:"space-between",gap:12,paddingVertical:8,borderBottomWidth:1,borderBottomColor:"#edf0e8"},summaryText:{fontSize:12,color:"#53655a",flexShrink:1},notice:{fontSize:12,lineHeight:18,color:"#176b48",backgroundColor:"#e6f1e3",padding:12,borderRadius:10},orderCard:{backgroundColor:"#fff",borderWidth:1,borderColor:"#e2e9df",borderRadius:14,padding:14,gap:6},orderRow:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8},orderCode:{fontWeight:"900",color:"#1b3027"},status:{fontSize:10,fontWeight:"900",textTransform:"capitalize",color:"#176b48",backgroundColor:"#edf5e9",paddingHorizontal:8,paddingVertical:5,borderRadius:8,overflow:"hidden"},note:{fontSize:11,lineHeight:17,color:"#718077",marginTop:15}
 });
