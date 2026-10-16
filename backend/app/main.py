@@ -546,6 +546,24 @@ SEED_PRODUCTS = [
     },
 ]
 
+def _normalize_image_url(value: str | None) -> str:
+    """Normalize stored image URL strings, including accidental Markdown links."""
+    value = str(value or "").strip()
+    match = re.fullmatch(r"\[([^\]]+)\]\((https?://[^)]+)\)", value)
+    if match:
+        value = match.group(2).strip()
+    return value if value.startswith(("https://", "http://")) else ""
+
+
+DEFAULT_IMAGE_BY_CATEGORY = {
+    "Daily essentials": "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85",
+    "Fresh picks": "https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85",
+    "Leafy greens": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85",
+    "Grocery": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85",
+    "Spices": "https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85",
+}
+
+
 Base.metadata.create_all(bind=engine)
 with engine.begin() as connection:
     migrations = {
@@ -565,20 +583,42 @@ def seed_products() -> None:
     db = SessionLocal()
     try:
         existing_products = {product.slug: product for product in db.scalars(select(Product)).all()}
-        missing = []
+        changed = False
         for item in SEED_PRODUCTS:
             existing = existing_products.get(item["slug"])
+            seed_url = _normalize_image_url(item.get("image_url"))
+            if not seed_url:
+                seed_url = DEFAULT_IMAGE_BY_CATEGORY.get(item.get("category", ""), DEFAULT_IMAGE_BY_CATEGORY["Fresh picks"])
             if existing is None:
-                missing.append(Product(**item))
-            elif item.get("image_url") == "":
-                # Use the product-specific icon fallback for images known to be broken or mismatched.
-                existing.image_url = ""
-        if missing or any(item.get("image_url") == "" and item["slug"] in existing_products for item in SEED_PRODUCTS):
-            db.add_all(missing)
+                values = dict(item)
+                values["image_url"] = seed_url
+                values["image_urls"] = json.dumps([seed_url])
+                db.add(Product(**values))
+                changed = True
+                continue
+            # Repair built-in catalog rows only; preserve shop-managed media and commercial fields.
+            if existing.shop_id is None:
+                primary = _normalize_image_url(existing.image_url)
+                try:
+                    stored_images = json.loads(existing.image_urls or "[]")
+                except (TypeError, ValueError):
+                    stored_images = []
+                images = [_normalize_image_url(image) for image in stored_images]
+                images = [image for image in images if image]
+                if not primary:
+                    primary = seed_url
+                if not images:
+                    images = [primary]
+                elif primary not in images:
+                    images.insert(0, primary)
+                if existing.image_url != primary or stored_images != images[:3] or not existing.image_urls:
+                    existing.image_url = primary
+                    existing.image_urls = json.dumps(images[:3])
+                    changed = True
+        if changed:
             db.commit()
     finally:
         db.close()
-
 
 seed_products()
 
@@ -616,15 +656,20 @@ def _money(value: Decimal) -> Decimal:
 
 def _product_payload(product: Product) -> dict:
     try:
-        images = json.loads(product.image_urls or "[]")
+        stored_images = json.loads(product.image_urls or "[]")
     except (TypeError, ValueError):
-        images = []
-    if not images and product.image_url:
-        images = [product.image_url]
+        stored_images = []
+    images = [_normalize_image_url(image) for image in stored_images]
+    images = [image for image in images if image]
+    primary = _normalize_image_url(product.image_url)
+    if primary and primary not in images:
+        images.insert(0, primary)
+    if not images:
+        images = [DEFAULT_IMAGE_BY_CATEGORY.get(product.category, DEFAULT_IMAGE_BY_CATEGORY["Fresh picks"])]
     return {
         "id": product.id, "name": product.name, "slug": product.slug,
         "category": product.category, "description": product.description,
-        "image_url": product.image_url, "image_urls": images[:3],
+        "image_url": images[0], "image_urls": images[:3],
         "unit": product.unit, "price": float(product.price), "stock_qty": product.stock_qty,
         "shop_id": product.shop_id, "shop_name": product.shop_name, "shop_address": product.shop_address,
     }
