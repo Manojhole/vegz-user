@@ -173,10 +173,10 @@ function renderProducts() {
     return;
   }
   let lastShopGroup = null;
-  $("#productGrid").innerHTML = filtered.map((product, index) => {
+  $("#productGrid").innerHTML = (filtered.some((product) => product.coming_soon) ? '<div class="coming-soon-banner"><strong>Vegz is coming soon to your area!</strong><span>Explore our fresh catalog now. We’ll let you know when delivery starts in your location.</span></div>' : "") + filtered.map((product, index) => {
     const shopGroup = product.shop_id != null ? "shop-" + product.shop_id : "general";
-    const shopHeading = shopGroup !== lastShopGroup
-      ? '<div class="shop-group-heading"><div><span>LOCAL PARTNER</span><h3>' + escapeHtml(product.shop_name || (activeDepartment === "grocery" ? "Vegz Grocery Picks" : "Vegz Fresh Picks")) + '</h3>' + (product.shop_address ? '<p>' + escapeHtml(product.shop_address) + '</p>' : '') + '</div><small>Available in ' + escapeHtml(selectedCity) + '</small></div>'
+    const shopHeading = shopGroup !== lastShopGroup && !product.coming_soon
+      ? '<div class="shop-group-heading"><div><span>LOCAL PARTNER</span><h3>' + escapeHtml(product.shop_name || (activeDepartment === "grocery" ? "Vegz Grocery Picks" : "Vegz Fresh Picks")) + '</h3>' + (product.shop_address ? '<p>' + escapeHtml(product.shop_address) + '</p>' : '') + '</div></div>'
       : "";
     lastShopGroup = shopGroup;
     const qty = Number(cart[product.id] || 0);
@@ -189,9 +189,9 @@ function renderProducts() {
       '<div class="' + imageClass + '" data-gallery-main="' + product.id + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span>' + gallery + '</div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml((LANG[currentLanguage].category || {})[product.category] || product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
-      (qty
+      (product.coming_soon ? '<span class="coming-soon-label">Coming soon</span>' : (qty
         ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
-        : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>') + '</div></div></article>';
+        : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>')) + '</div></div></article>';
   }).join("");
   $("#productGrid .product-image img").forEach((image) => {
     image.addEventListener("error", () => image.parentElement.classList.add("image-fallback"), { once: true });
@@ -455,7 +455,15 @@ async function openAddressStage() {
 async function submitAddress(formData, form) {
   const button = $('button[type="submit"]', form);
   button.disabled = true;
-  button.innerHTML = "Saving address…";
+  button.innerHTML = "Checking delivery…";
+  const city = String(formData.get("city") || "").trim();
+  try {
+    const serviceCatalog = await request("/api/products?city=" + encodeURIComponent(city));
+    if (serviceCatalog.some((product) => product.coming_soon) || !serviceCatalog.length) {
+      toast("Vegz is coming soon to " + city + ". We are not delivering there yet.", "error");
+      return;
+    }
+  } catch (_) { toast("Could not verify delivery availability. Please try again.", "error"); return; }
   const body = {
     recipient_name: formData.get("recipient_name"),
     phone: formData.get("phone"),
@@ -632,20 +640,6 @@ $("#yearLabel").textContent = String(new Date().getFullYear());
 const savedLanguage = (() => { try { return localStorage.getItem(LANG_KEY); } catch (_) { return null; } })();
 applyLanguage(savedLanguage || (String(navigator.language || "").toLowerCase().startsWith("kn") ? "kn" : "en"), false);
 $("#languageSelect")?.addEventListener("change", event => applyLanguage(event.target.value, true));
-const cityPicker = $("#deliveryCitySelect");
-if (cityPicker) {
-  cityPicker.value = selectedCity;
-  cityPicker.addEventListener("change", () => {
-    const nextCity = cityPicker.value;
-    if (nextCity === selectedCity) return;
-    selectedCity = nextCity;
-    try { localStorage.setItem(CITY_KEY, selectedCity); } catch (_) {}
-    cart = {};
-    saveCart();
-    renderCart();
-    loadProducts();
-  });
-}
 loadProducts();
 if (token) {
   request("/api/me").then((user) => { currentUser = user; }).catch(() => { token = ""; });
