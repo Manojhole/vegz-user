@@ -711,7 +711,14 @@ def store_config():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "vegz-user-api"}
+    """Liveness endpoint that also verifies the configured SQL database is reachable."""
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception as exc:
+        logger.exception("Health check database probe failed")
+        raise HTTPException(status_code=503, detail="Database unavailable") from exc
+    return {"status": "ok", "service": "vegz-user-api", "database": "connected"}
 
 
 @app.get("/api/products")
