@@ -86,7 +86,7 @@ export default function HomePage() {
   async function loadAccount(session: string, updateToken = true) {
     try {
       const [me, savedAddresses, recentOrders] = await Promise.all([
-        api<Customer>("/api/auth/me", session),
+        api<Customer>("/api/me", session),
         api<Address[]>("/api/addresses", session),
         api<CustomerOrder[]>("/api/orders", session),
       ]);
