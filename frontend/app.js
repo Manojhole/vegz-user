@@ -80,7 +80,7 @@ const PRODUCT_IMAGE_FALLBACKS = {
   coffee:"https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=700&q=80",
   coconut:"https://images.unsplash.com/photo-1551462147-ff29053bfc14?auto=format&fit=crop&w=700&q=80",
   ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=80",
-  garlic:"https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=700&q=80",
+  garlic:"https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?auto=format&fit=crop&w=700&q=80",
   "basmati-rice":"https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=700&q=80",
   "toor-dal":"https://images.unsplash.com/photo-1515543904379-3d757abe4e6e?auto=format&fit=crop&w=700&q=80",
   "moong-dal":"https://images.unsplash.com/photo-1515543904379-3d757abe4e6e?auto=format&fit=crop&w=700&q=80",
@@ -263,7 +263,7 @@ function renderProducts() {
     return;
   }
   let lastShopGroup = null;
-  $("#productGrid").innerHTML = (filtered.some((product) => product.coming_soon) ? '<div class="coming-soon-banner"><strong>Vegz is coming soon to your area!</strong><span>Explore our fresh catalog now. We’ll let you know when delivery starts in your location.</span></div>' : "") + filtered.map((product, index) => {
+  $("#productGrid").innerHTML = (filtered.some((product) => product.coming_soon) ? '<div class="coming-soon-banner"><strong>Explore the Vegz catalog</strong><span>Add items to your basket with + and −. Checkout activates when an approved local shop is accepting orders in your delivery city.</span></div>' : "") + filtered.map((product, index) => {
     const shopGroup = product.shop_id != null ? "shop-" + product.shop_id : "general";
     const shopHeading = shopGroup !== lastShopGroup && !product.coming_soon
       ? '<div class="shop-group-heading"><div><span>LOCAL PARTNER</span><h3>' + escapeHtml(product.shop_name || (activeDepartment === "grocery" ? "Vegz Grocery Picks" : "Vegz Fresh Picks")) + '</h3>' + (product.shop_address ? '<p>' + escapeHtml(product.shop_address) + '</p>' : '') + '</div></div>'
