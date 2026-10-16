@@ -85,10 +85,14 @@ const PRODUCT_IMAGE_FALLBACKS = {
   "toor-dal":"https://images.unsplash.com/photo-1515543904379-3d757abe4e6e?auto=format&fit=crop&w=700&q=80"
 };
 function imageForProduct(product, index = 0) {
+  // Built-in catalog rows have generic legacy category photos in some existing DBs.
+  // Prefer the product-specific image so a rice bag never displays a potato photo.
+  const productFallback = PRODUCT_IMAGE_FALLBACKS[product.slug];
+  if (product.shop_id == null && productFallback) return productFallback;
   const candidates = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : []));
   const candidate = candidates[index] || candidates[0] || "";
   if (candidate) return candidate;
-  return PRODUCT_IMAGE_FALLBACKS[product.slug] || "";
+  return productFallback || "";
 }
 function attachProductImageFallbacks(root) {
   root.querySelectorAll(".product-image img").forEach((image) => {
@@ -106,7 +110,19 @@ function attachProductImageFallbacks(root) {
 }
 function departmentFor(product) {
   const category = String(product.category || "").trim().toLowerCase();
-  return category === "grocery" || category === "spices" ? "grocery" : "vegetables";
+  const slug = String(product.slug || "").toLowerCase();
+  // Prefer the supplier department for live products; older seeded catalog rows
+  // used broad categories such as "Daily essentials" for pantry products.
+  if (product.shop_id != null) return category === "grocery" || category === "spices" ? "grocery" : "vegetables";
+  const grocerySlugs = new Set([
+    "basmati-rice","toor-dal","moong-dal","chana-dal","wheat-flour","besan",
+    "cooking-oil","groundnut-oil","coconut-oil","sugar","salt","tea-powder","coffee",
+    "turmeric-powder","red-chilli-powder","cumin-seeds","mustard-seeds","poha","oats",
+    "peanuts","jaggery","pasta","ragi-flour","jowar-flour","rice-flour","rava",
+    "urad-dal","masoor-dal","tamarind","dry-coconut","sambar-powder","rasam-powder",
+    "chutney-pudi","byadgi-chilli","papad","vermicelli","green-gram-whole","horse-gram"
+  ]);
+  return category === "grocery" || category === "spices" || grocerySlugs.has(slug) ? "grocery" : "vegetables";
 }
 function departmentLabel(department) { return department === "grocery" ? "Grocery" : "Vegetables"; }
 function itemCount() { return Object.values(cart).reduce((sum, qty) => sum + Number(qty || 0), 0); }
@@ -219,7 +235,7 @@ function renderProducts() {
     lastShopGroup = shopGroup;
     const qty = Number(cart[product.id] || 0);
     const images = (product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])).slice(0, 3);
-    const image = escapeHtml(images[0] || imageForProduct(product));
+    const image = escapeHtml(product.shop_id == null && PRODUCT_IMAGE_FALLBACKS[product.slug] ? imageForProduct(product) : (images[0] || imageForProduct(product)));
     const gallery = images.length > 1 ? '<div class="product-photo-thumbs">' + images.slice(1).map((url, imageIndex) => '<button class="product-photo-thumb" data-gallery-product="' + product.id + '" data-gallery-index="' + (imageIndex + 1) + '" type="button" aria-label="View photo ' + (imageIndex + 2) + ' of ' + escapeHtml(product.name) + '"><img src="' + escapeHtml(url) + '" alt="" loading="lazy"></button>').join("") + '</div>' : "";
     const name = escapeHtml(localizedName(product.name));
     const imageClass = image ? "product-image" : "product-image image-fallback";
@@ -227,9 +243,9 @@ function renderProducts() {
       '<div class="' + imageClass + '" data-gallery-main="' + product.id + '">' + (image ? '<img src="' + image + '" alt="' + name + '" loading="lazy">' : '') + '<span class="product-emoji" aria-hidden="true">' + iconFor(product) + '</span><span class="product-badge">FRESH PICK</span>' + gallery + '</div>' +
       '<div class="product-info"><span class="product-category">' + escapeHtml((LANG[currentLanguage].category || {})[product.category] || product.category) + '</span><h3 class="product-name">' + name + '</h3>' +
       '<p class="product-description">' + escapeHtml(product.description) + '</p><div class="product-foot"><div class="product-price">' + currency(product.price) + '<small>per ' + escapeHtml(product.unit) + '</small></div>' +
-      (product.coming_soon ? '<span class="coming-soon-label">Coming soon</span>' : (qty
+      (qty
         ? '<div class="card-quantity-controls"><button class="card-quantity-button" data-minus="' + product.id + '" type="button" aria-label="Remove one ' + name + '">−</button><span class="card-quantity-value">' + qty + '</span><button class="card-quantity-button plus" data-add="' + product.id + '" type="button" aria-label="Add one ' + name + '">+</button></div>'
-        : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>')) + '</div></div></article>';
+        : '<button class="add-button" data-add="' + product.id + '" type="button" aria-label="Add ' + name + ' to basket">+</button>') + '</div></div></article>';
   }).join("");
   attachProductImageFallbacks($("#productGrid"));
   $("#productGrid .product-image img").forEach((image) => {
@@ -272,7 +288,7 @@ function renderCart() {
     $("#cartItems").innerHTML = '<div class="empty-cart"><span class="empty-cart-art">🥬</span><strong>Your basket is taking a nap</strong><p>Add some fresh favourites and they will show up here.</p></div>';
   } else {
     $("#cartItems").innerHTML = entries.map(({ product, quantity }) => {
-      const image = escapeHtml(product.image_url || imageForProduct(product));
+      const image = escapeHtml(product.shop_id == null && PRODUCT_IMAGE_FALLBACKS[product.slug] ? imageForProduct(product) : (product.image_url || imageForProduct(product)));
       return '<div class="cart-row"><div class="cart-thumb' + (image ? '' : ' fallback') + '">' + (image ? '<img src="' + image + '" alt="">' : '') + '<span aria-hidden="true">' + iconFor(product) + '</span></div>' +
         '<div><div class="cart-row-name">' + escapeHtml(localizedName(product.name)) + '</div><div class="cart-row-price">' + currency(product.price) + ' / ' + escapeHtml(product.unit) + '</div>' +
         '<div class="quantity-controls"><button type="button" data-minus="' + product.id + '" aria-label="Decrease ' + escapeHtml(product.name) + ' quantity">−</button><span>' + quantity + '</span><button type="button" data-add="' + product.id + '" aria-label="Increase ' + escapeHtml(product.name) + ' quantity">+</button></div></div>' +
