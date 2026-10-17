@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 const API_BASE = (process.env.EXPO_PUBLIC_VEGZ_API_URL || "http://10.0.2.2:8003").replace(/\/$/, "");
@@ -18,6 +18,12 @@ async function api<T>(path: string, token = "", init: RequestInit = {}): Promise
 }
 
 export default function Home() {
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, { toValue: 1, duration: 460, useNativeDriver: true }).start();
+    return () => enter.stopAnimation();
+  }, [enter]);
+
   const [items, setItems] = useState<Product[]>([]);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
@@ -135,7 +141,7 @@ export default function Home() {
     finally{setBusy(false);}
   }
 
-  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.page}>
+  return <SafeAreaView style={s.safe}><Animated.ScrollView style={{ opacity: enter }} contentContainerStyle={s.page}>
     <View style={s.header}><Text style={s.brand}>vegz<Text style={s.period}>.</Text></Text><Text style={s.basketCount}>{count} in basket</Text></View>
     <Text style={s.eyebrow}>YOUR NEIGHBOURHOOD MARKET</Text><Text style={s.title}>Fresh market finds, delivered.</Text><Text style={s.sub}>Vegetables and everyday groceries from local stores in your city.</Text>
     <View style={s.marketHero}><Text style={s.heroEmoji}>🥬  🥕  🍅</Text><View><Text style={s.heroTitle}>Local stores. One basket.</Text><Text style={s.muted}>Starting with Hubli and Dharwad</Text></View></View>
@@ -144,7 +150,7 @@ export default function Home() {
     <View style={s.sectionHead}><Text style={s.sectionTitle}>Today's market</Text><Text style={s.muted}>{items.length} products</Text></View>
     <TextInput style={s.searchInput} value={searchTerm} onChangeText={setSearchTerm} placeholder="Search vegetables and groceries…" placeholderTextColor="#718077" accessibilityLabel="Search products"/>
     <View style={s.sortRow}><Text style={s.muted}>Sort by</Text>{([{value:"recommended",label:"Popular"},{value:"name",label:"A–Z"},{value:"price-low",label:"Price ↑"},{value:"price-high",label:"Price ↓"}] as const).map(option=><Pressable key={option.value} onPress={()=>setSortOrder(option.value)} style={[s.sortButton,sortOrder===option.value&&s.sortButtonActive]}><Text style={[s.sortText,sortOrder===option.value&&s.sortTextActive]}>{option.label}</Text></Pressable>)}</View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categories}>{categories.map((value)=><Pressable key={value} onPress={()=>setCategory(value)} style={[s.category,category===value&&s.categoryActive]}><Text style={[s.categoryText,category===value&&s.categoryTextActive]}>{value}</Text></Pressable>)}</ScrollView>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categories}>{categories.map((value)=><Pressable key={value} onPress={()=>setCategory(value)} style={[s.category,category===value&&s.categoryActive]}><Text style={[s.categoryText,category===value&&s.categoryTextActive]}>{value}</Text></Pressable>)}</Animated.ScrollView>
     {loading&&<View style={s.message}><ActivityIndicator color="#176b48"/><Text style={s.muted}>Loading fresh picks…</Text></View>}
     {!!error&&<Text style={s.error}>{error}<Text onPress={()=>{setLoading(true);setError("");loadCatalog().catch((e)=>setError(e instanceof Error?e.message:"Catalog unavailable.")).finally(()=>setLoading(false));}}>  Retry</Text></Text>}
     {!loading&&!error&&visibleItems.length===0&&<Text style={s.muted}>No products in this category yet.</Text>}
@@ -185,7 +191,7 @@ export default function Home() {
     {!!orderNotice&&<Text style={s.notice}>{orderNotice}</Text>}
     {!token?<Text style={s.muted}>Verify your phone at checkout to see order history.</Text>:orders.length===0?<Text style={s.muted}>No orders yet. Your order status will appear here after ordering.</Text>:orders.map(order=><View key={order.id} style={s.orderCard}><View style={s.orderRow}><Text style={s.orderCode}>{order.tracking_code}</Text><Text style={s.status}>{order.status.replace(/_/g," ")}</Text></View><Text style={s.price}>₹{Number(order.total_amount).toFixed(2)}</Text><Text style={s.muted}>Payment: {order.payment_status.replace(/_/g," ")} · {new Date(order.created_at).toLocaleString()}</Text></View>)}
     <Text style={s.note}>Vegz connects local vegetable and grocery shops with neighbourhood customers. Online payment and live GPS require production integrations.</Text>
-  </ScrollView></SafeAreaView>;
+  </Animated.ScrollView></SafeAreaView>;
 }
 
 function Action({label,onPress,disabled=false}:{label:string;onPress:()=>void;disabled?:boolean}){return <Pressable onPress={onPress} disabled={disabled} style={[s.action,disabled&&s.disabled]}><Text style={s.actionText}>{label}</Text></Pressable>}
