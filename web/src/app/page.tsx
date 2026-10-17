@@ -23,10 +23,17 @@ type CustomerOrder = { id: number; tracking_code: string; total_amount: number; 
 type ApiError = { detail?: string };
 
 const API_BASE = (process.env.NEXT_PUBLIC_VEGZ_API_URL || "http://localhost:8003").replace(/\/$/, "");
+const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
+ tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85", potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85", "red onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=85", carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85", spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85", broccoli:"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=700&q=85", cabbage:"https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85", ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85", garlic:"https://images.unsplash.com/photo-1615477550927-6ec8445c4e2d?auto=format&fit=crop&w=700&q=85", "green chilli":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85", lemon:"https://images.unsplash.com/photo-1513558161293-caac8ea942c8?auto=format&fit=crop&w=700&q=85", "green capsicum":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85"
+};
+function normalizedImageUrl(url?:string) { if(!url)return ""; if(/^https?:\/\//i.test(url))return url; return API_BASE + (url.startsWith("/") ? url : "/" + url); }
+function fallbackProductImage(name:string) { return PRODUCT_IMAGE_FALLBACKS[name.trim().toLowerCase()] || PRODUCT_IMAGE_FALLBACKS.tomato; }
 const EMPTY_ADDRESS = { label:"Home", recipient_name:"", phone:"", line1:"", line2:"", landmark:"", city:"Hubli", state:"Karnataka", postal_code:"", is_default:true };
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [cartReady, setCartReady] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string,number>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +58,14 @@ export default function HomePage() {
   const [orderNotice, setOrderNotice] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(25);
   const [freeDeliveryMinimum, setFreeDeliveryMinimum] = useState(499);
+
+  useEffect(() => {
+    try { const saved = window.localStorage.getItem("vegz-customer-basket"); if (saved) setQuantities(JSON.parse(saved) as Record<string,number>); } catch { /* Ignore invalid basket data. */ }
+    setCartReady(true);
+  }, []);
+  useEffect(() => {
+    if (cartReady) window.localStorage.setItem("vegz-customer-basket", JSON.stringify(quantities));
+  }, [quantities, cartReady]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -159,6 +174,10 @@ export default function HomePage() {
   async function placeOrder() {
     if (!token) { setCheckoutError("Verify your mobile number to continue."); return; }
     if (!basketItems.length) { setCheckoutError("Add products to your basket first."); return; }
+    if (basketItems.some((product) => product.shop_id == null || (product.stock_qty ?? 0) <= 0)) {
+      setCheckoutError("Some items are not yet linked to an approved local shop with available stock. Your basket is saved; choose available shop-listed products to place an order.");
+      return;
+    }
     if (!["hubli","dharwad"].includes(address.city.trim().toLowerCase()) && !selectedAddressId) {
       setCheckoutError(`Vegz is coming soon to ${address.city}. We currently deliver only in Hubli and Dharwad.`); return;
     }
@@ -183,7 +202,8 @@ export default function HomePage() {
 
   function setQty(product: Product, next: number) {
     const id = String(product.id);
-    const maximum = Math.min(99, product.stock_qty ?? 99);
+    const stock = Number(product.stock_qty ?? 0);
+    const maximum = Math.min(99, stock > 0 ? stock : 99);
     setQuantities((old) => ({ ...old, [id]: Math.max(0, Math.min(maximum, next)) }));
   }
 
@@ -230,15 +250,17 @@ export default function HomePage() {
           {visibleProducts.map((product) => {
             const id = String(product.id);
             const quantity = quantities[id] || 0;
-            const unavailable = product.shop_id == null || (product.stock_qty ?? 0) <= 0;
+            const imageState = failedImages[id] || 0;
+            const primaryImage = normalizedImageUrl(product.image_url) || fallbackProductImage(product.name);
+            const imageSrc = imageState === 0 ? primaryImage : imageState === 1 ? fallbackProductImage(product.name) : "";
+            const maxQuantity = Math.min(99, (product.stock_qty ?? 0) > 0 ? (product.stock_qty ?? 0) : 99);
             return <article className="product-card" key={id}>
               <div className="product-image">
-                {product.image_url ? <img src={product.image_url} alt={product.name} loading="lazy" /> : <div className="image-placeholder">🥦</div>}
-                {unavailable && <span className="product-badge">Coming soon</span>}
+                {imageSrc ? <img src={imageSrc} alt={product.name} loading="lazy" onError={() => setFailedImages((old) => ({...old,[id]:Math.min(2,(old[id]||0)+1)}))} /> : <div className="image-placeholder">🥦</div>}
               </div>
               <div className="product-info"><span className="product-category">{product.category || "Market fresh"}</span><h3>{product.name}</h3><p className="product-shop">{product.shop_name || "Local Vegz market"}</p>
                 <div className="product-bottom"><div><strong>₹{Number(product.price || 0).toFixed(2)}</strong><span> / {product.unit || "item"}</span></div>
-                  {unavailable ? <span className="unavailable">Coming soon</span> : quantity === 0 ? <button className="add-button" onClick={() => setQty(product,1)}>+ Add</button> : <div className="quantity-control"><button aria-label={`Remove one ${product.name}`} onClick={() => setQty(product,quantity-1)}>−</button><span>{quantity}</span><button aria-label={`Add one ${product.name}`} disabled={quantity >= Math.min(99,product.stock_qty ?? 99)} onClick={() => setQty(product,quantity+1)}>+</button></div>}
+                  {quantity === 0 ? <button className="add-button" onClick={() => setQty(product,1)}>+ Add</button> : <div className="quantity-control"><button aria-label={`Remove one ${product.name}`} onClick={() => setQty(product,quantity-1)}>−</button><span>{quantity}</span><button aria-label={`Add one ${product.name}`} disabled={quantity >= maxQuantity} onClick={() => setQty(product,quantity+1)}>+</button></div>}
                 </div>
               </div>
             </article>;
