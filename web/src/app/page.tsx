@@ -29,6 +29,8 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("recommended");
   const [city, setCity] = useState("Hubli");
   const [loading, setLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
@@ -104,7 +106,19 @@ export default function HomePage() {
     () => ["All", ...Array.from(new Set(products.map((product) => product.category).filter((value): value is string => Boolean(value))))],
     [products],
   );
-  const visibleProducts = category === "All" ? products : products.filter((product) => product.category === category);
+  const visibleProducts = useMemo(() => {
+    const term = searchTerm.trim().toLocaleLowerCase();
+    const filtered = products.filter((product) =>
+      (category === "All" || product.category === category) &&
+      (!term || `${product.name} ${product.category || ""} ${product.shop_name || ""}`.toLocaleLowerCase().includes(term))
+    );
+    return filtered.sort((a, b) => {
+      if (sortOrder === "price-low") return Number(a.price) - Number(b.price) || a.name.localeCompare(b.name);
+      if (sortOrder === "price-high") return Number(b.price) - Number(a.price) || a.name.localeCompare(b.name);
+      if (sortOrder === "name") return a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
+  }, [products, category, searchTerm, sortOrder]);
   const basketItems = products.filter((product) => (quantities[String(product.id)] || 0) > 0);
   const subtotal = basketItems.reduce((sum, product) => sum + Number(product.price || 0) * (quantities[String(product.id)] || 0), 0);
   const itemCount = Object.values(quantities).reduce((sum, quantity) => sum + quantity, 0);
@@ -199,6 +213,10 @@ export default function HomePage() {
           {["Hubli","Dharwad"].map((value)=><button key={value} className={city===value?"category active":"category"} onClick={()=>{setCity(value);setLoading(true);setCatalogError("");}}>{value}</button>)}
         </nav>
         <div className="section-heading"><div><p className="eyebrow">THE DAILY MARKET</p><h2>What are we cooking?</h2></div><span className="catalog-count">{products.length} items</span></div>
+        <div className="catalog-tools">
+          <label className="catalog-search"><span className="sr-only">Search products</span><span aria-hidden="true">⌕</span><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search vegetables, groceries…" /></label>
+          <label className="catalog-sort"><span>Sort</span><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort products"><option value="recommended">Recommended</option><option value="name">Name A–Z</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label>
+        </div>
         <nav className="category-row" aria-label="Product categories">
           {categories.map((value) => <button key={value} className={category === value ? "category active" : "category"} onClick={() => setCategory(value)}>{value}</button>)}
         </nav>
