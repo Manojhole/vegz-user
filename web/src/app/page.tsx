@@ -116,6 +116,7 @@ export default function HomePage() {
       if (sortOrder === "price-low") return Number(a.price) - Number(b.price) || a.name.localeCompare(b.name);
       if (sortOrder === "price-high") return Number(b.price) - Number(a.price) || a.name.localeCompare(b.name);
       if (sortOrder === "name") return a.name.localeCompare(b.name);
+      if (sortOrder === "recommended") return 0;
       return a.name.localeCompare(b.name);
     });
   }, [products, category, searchTerm, sortOrder]);
