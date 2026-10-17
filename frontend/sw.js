@@ -1,4 +1,4 @@
-const CACHE_NAME = "vegz-static-v1";
+const CACHE_NAME = "vegz-static-v2";
 const APP_SHELL = ["/", "/styles.css", "/app.js", "/manifest.webmanifest", "/vegz-icon.svg"];
 
 self.addEventListener("install", (event) => {
