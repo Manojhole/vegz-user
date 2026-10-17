@@ -106,6 +106,16 @@ def run():
     approved_product = call("PATCH",url("admin",f"/api/products/{admin_product['id']}"),{"status":"approved"},admin)
     assert approved_product["status"] == "approved"
     call("PATCH",url("agent","/api/me"),{"is_online":True},agent["access_token"])
+    admin_agent = next(x for x in call("GET",url("admin","/api/agents"),token=admin) if x["id"] == aid)
+    assert admin_agent["is_online"] is True, "Agent online state did not sync to admin."
+    eligibility = call("GET",url("agent","/api/internal/availability?city=Hubli",),token=DISPATCH_TOKEN)
+    assert eligibility["available"] is True, "Online verified agent should be eligible for dispatch."
+    call("PATCH",url("agent","/api/me"),{"is_online":False},agent["access_token"])
+    admin_agent = next(x for x in call("GET",url("admin","/api/agents"),token=admin) if x["id"] == aid)
+    assert admin_agent["is_online"] is False, "Agent offline state did not sync to admin."
+    eligibility = call("GET",url("agent","/api/internal/availability?city=Hubli"),token=DISPATCH_TOKEN)
+    assert eligibility["available"] is False, "Offline agent must not be eligible for dispatch."
+    call("PATCH",url("agent","/api/me"),{"is_online":True},agent["access_token"])
     catalog = call("GET",url("user","/api/products?city=Hubli"))
     item = next(x for x in catalog if x["shop_id"] == st["id"] and x["name"] == "Tomato")
     assert item["price"] == 40 and item["stock_qty"] == 18
