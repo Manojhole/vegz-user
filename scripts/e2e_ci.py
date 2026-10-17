@@ -85,6 +85,12 @@ def run():
     # Verify stock/price edits propagate to the customer catalog and out-of-stock items disappear.
     updated = call("PATCH",url("shop",f"/api/products/{product['id']}"),{"price":40,"stock_qty":18},shop["access_token"])
     assert updated["price"] == 40 and updated["stock_qty"] == 18
+    # Shop-created products correctly remain hidden until the admin approves them.
+    external_ref = f"vegz-shop-product:+919876543212:{product['id']}"
+    pending_products = call("GET",url("admin","/api/products?status_filter=pending"),token=admin)
+    admin_product = next(x for x in pending_products if x["external_ref"] == external_ref)
+    approved_product = call("PATCH",url("admin",f"/api/products/{admin_product['id']}"),{"status":"approved"},admin)
+    assert approved_product["status"] == "approved"
     call("PATCH",url("agent","/api/me"),{"is_online":True},agent["access_token"])
     catalog = call("GET",url("user","/api/products?city=Hubli"))
     item = next(x for x in catalog if x["shop_id"] == st["id"] and x["name"] == "Tomato")
