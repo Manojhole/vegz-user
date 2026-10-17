@@ -3,6 +3,11 @@ import { ActivityIndicator, Animated, Image, Pressable, SafeAreaView, StyleSheet
 import * as SecureStore from "expo-secure-store";
 
 const API_BASE = (process.env.EXPO_PUBLIC_VEGZ_API_URL || "http://10.0.2.2:8003").replace(/\/$/, "");
+const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
+ tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85", potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85", "red onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=85", carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85", spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85", broccoli:"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=700&q=85", cabbage:"https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85", ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85", garlic:"https://images.unsplash.com/photo-1615477550927-6ec8445c4e2d?auto=format&fit=crop&w=700&q=85", "green chilli":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85", lemon:"https://images.unsplash.com/photo-1513558161293-caac8ea942c8?auto=format&fit=crop&w=700&q=85", "green capsicum":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85"
+};
+function normalizedImageUrl(url?:string) { if(!url)return ""; if(/^https?:\/\//i.test(url))return url; return API_BASE + (url.startsWith("/") ? url : "/" + url); }
+function fallbackProductImage(name:string) { return PRODUCT_IMAGE_FALLBACKS[name.trim().toLowerCase()] || PRODUCT_IMAGE_FALLBACKS.tomato; }
 type Product = { id: number | string; name: string; category?: string; description?: string; image_url?: string; price: number | string; unit?: string; stock_qty?: number; shop_id?: number | null; shop_name?: string };
 type Address = { id: number; label: string; recipient_name: string; phone: string; line1: string; line2: string; landmark: string; city: string; state: string; postal_code: string; is_default: boolean };
 type Customer = { id: number; phone: string; full_name?: string | null };
@@ -25,6 +30,8 @@ export default function Home() {
   }, [enter]);
 
   const [items, setItems] = useState<Product[]>([]);
+  const [failedImages, setFailedImages] = useState<Record<string,number>>({});
+  const [basketReady, setBasketReady] = useState(false);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,6 +76,13 @@ export default function Home() {
   }, [city]);
 
   useEffect(() => {
+    SecureStore.getItemAsync("vegz-customer-basket").then((saved) => { if (saved) setQty(JSON.parse(saved) as Record<string,number>); }).catch(() => undefined).finally(() => setBasketReady(true));
+  }, []);
+  useEffect(() => {
+    if (basketReady) SecureStore.setItemAsync("vegz-customer-basket", JSON.stringify(qty)).catch(() => undefined);
+  }, [qty, basketReady]);
+
+  useEffect(() => {
     loadCatalog().catch((e) => setError(e instanceof Error ? e.message : "Catalog unavailable.")).finally(() => setLoading(false));
     api<{delivery_fee?:number;free_delivery_minimum?:number}>("/api/store-config").then((config) => {
       setDeliveryFee(Number(config.delivery_fee ?? 25)); setFreeMinimum(Number(config.free_delivery_minimum ?? 499));
@@ -99,7 +113,7 @@ export default function Home() {
   const total = subtotal + fee;
 
   function changeQty(item: Product, value: number) {
-    const id = String(item.id); const max = Math.min(99, item.stock_qty ?? 99);
+    const id = String(item.id); const stock = Number(item.stock_qty ?? 0); const max = Math.min(99, stock > 0 ? stock : 99);
     setQty((old) => ({...old,[id]:Math.max(0,Math.min(max,value))}));
   }
   async function requestOtp() {
@@ -124,6 +138,10 @@ export default function Home() {
   async function placeOrder() {
     if(!token){setCheckoutError("Verify your phone number first.");return;}
     if(!basket.length){setCheckoutError("Add items to your basket first.");return;}
+    if(basket.some((item)=>item.shop_id==null||(item.stock_qty??0)<=0)){
+      setCheckoutError("Some items are not yet linked to an approved local shop with available stock. Your basket is saved; choose available shop-listed products to place an order.");
+      return;
+    }
     if(!selectedAddressId&&!["hubli","dharwad"].includes(address.city.trim().toLowerCase())){setCheckoutError(`Vegz is coming soon to ${address.city}. We currently deliver only in Hubli and Dharwad.`);return;}
     setBusy(true);setCheckoutError("");setOrderNotice("");
     try {
@@ -155,12 +173,16 @@ export default function Home() {
     {!!error&&<Text style={s.error}>{error}<Text onPress={()=>{setLoading(true);setError("");loadCatalog().catch((e)=>setError(e instanceof Error?e.message:"Catalog unavailable.")).finally(()=>setLoading(false));}}>  Retry</Text></Text>}
     {!loading&&!error&&visibleItems.length===0&&<Text style={s.muted}>No products in this category yet.</Text>}
     {visibleItems.map((item)=>{
-      const id=String(item.id), quantity=qty[id]||0, unavailable=item.shop_id==null||(item.stock_qty??0)<=0;
+      const id=String(item.id), quantity=qty[id]||0;
+      const imageState=failedImages[id]||0;
+      const primaryImage=normalizedImageUrl(item.image_url)||fallbackProductImage(item.name);
+      const imageUri=imageState===0?primaryImage:imageState===1?fallbackProductImage(item.name):"";
+      const stock=Number(item.stock_qty??0), maxQuantity=Math.min(99,stock>0?stock:99);
       return <View key={id} style={s.productCard}>
-        {item.image_url?<Image source={{uri:item.image_url}} style={s.image}/>:<View style={[s.image,s.imagePlaceholder]}><Text style={{fontSize:36}}>🥦</Text></View>}
+        {imageUri?<Image source={{uri:imageUri}} style={s.image} onError={()=>setFailedImages((old)=>({...old,[id]:Math.min(2,(old[id]||0)+1)}))}/>:<View style={[s.image,s.imagePlaceholder]}><Text style={{fontSize:36}}>🥦</Text></View>}
         <View style={s.productInfo}><Text style={s.categoryLabel}>{item.category||"Market fresh"}</Text><Text style={s.name}>{item.name}</Text><Text style={s.muted}>{item.shop_name||"Local Vegz market"}</Text>
           <View style={s.productBottom}><Text style={s.price}>₹{Number(item.price||0).toFixed(2)} <Text style={s.unit}>/ {item.unit||"item"}</Text></Text>
-            {unavailable?<Text style={s.soon}>Coming soon</Text>:quantity===0?<Pressable style={s.add} onPress={()=>changeQty(item,1)}><Text style={s.addText}>+ Add</Text></Pressable>:<View style={s.controls}><Pressable style={s.qtyButton} onPress={()=>changeQty(item,quantity-1)}><Text style={s.qtyButtonText}>−</Text></Pressable><Text style={s.qtyText}>{quantity}</Text><Pressable style={s.qtyButton} disabled={quantity>=Math.min(99,item.stock_qty??99)} onPress={()=>changeQty(item,quantity+1)}><Text style={s.qtyButtonText}>+</Text></Pressable></View>}
+            {quantity===0?<Pressable style={s.add} onPress={()=>changeQty(item,1)}><Text style={s.addText}>+ Add</Text></Pressable>:<View style={s.controls}><Pressable style={s.qtyButton} onPress={()=>changeQty(item,quantity-1)}><Text style={s.qtyButtonText}>−</Text></Pressable><Text style={s.qtyText}>{quantity}</Text><Pressable style={s.qtyButton} disabled={quantity>=maxQuantity} onPress={()=>changeQty(item,quantity+1)}><Text style={s.qtyButtonText}>+</Text></Pressable></View>}
           </View>
         </View>
       </View>;
