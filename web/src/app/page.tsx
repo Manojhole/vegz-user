@@ -23,6 +23,14 @@ type CustomerOrder = { id: number; tracking_code: string; total_amount: number; 
 type ApiError = { detail?: string };
 
 const API_BASE = (process.env.NEXT_PUBLIC_VEGZ_API_URL || "http://localhost:8003").replace(/\/$/, "");
+const CATEGORY_EMOJI: Record<string,string> = {
+  All:"🛍️", Vegetables:"🥦", Vegetable:"🥦", Grocery:"🛒", Groceries:"🛒",
+  "Daily essentials":"🥕", "Fresh picks":"🍅", "Leafy greens":"🥬", Fruits:"🍎",
+  Spices:"🌶️", Staples:"🌾", Dairy:"🥛", Snacks:"🍪"
+};
+function categoryEmoji(value:string) {
+  return CATEGORY_EMOJI[value] || (value.toLowerCase().includes("leaf") ? "🥬" : value.toLowerCase().includes("fruit") ? "🍎" : value.toLowerCase().includes("grocer") ? "🛒" : "🥦");
+}
 const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
  tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85", potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85", "red onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=85", carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85", spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85", broccoli:"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=700&q=85", cabbage:"https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85", ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85", garlic:"https://images.unsplash.com/photo-1615477550927-6ec8445c4e2d?auto=format&fit=crop&w=700&q=85", "green chilli":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85", lemon:"https://images.unsplash.com/photo-1513558161293-caac8ea942c8?auto=format&fit=crop&w=700&q=85", "green capsicum":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85"
 };
@@ -211,20 +219,20 @@ export default function HomePage() {
     <main className="store-shell">
       <header className="store-header">
         <a className="brand" href="/" aria-label="Vegz home"><span className="brand-mark">V</span><span>vegz<span className="brand-period">.</span></span></a>
-        <span className="delivery-pill"><span className="live-dot" /> Fresh vegetables & groceries</span>
+        <span className="delivery-pill"><span className="live-dot" /> Local stores · One basket</span>
         <a className="basket-link" href="#basket">Basket <strong>{itemCount}</strong></a>
       </header>
 
       <section className="store-hero">
         <div className="hero-copy">
           <p className="eyebrow">YOUR NEIGHBOURHOOD, DELIVERED</p>
-          <h1>Fresh market finds.<br /><span>Right to your door.</span></h1>
-          <p>Shop vegetables and everyday groceries from local stores in your city. One basket, simple ordering.</p>
+          <h1>Your daily needs.<br /><span>Fresh from nearby shops.</span></h1>
+          <p>Shop vegetables and everyday groceries from trusted neighbourhood stores in Hubli and Dharwad. Compare prices, build one basket and track your order.</p>
           <a className="primary-link" href="#catalog">Explore the market <span aria-hidden="true">↓</span></a>
         </div>
         <div className="market-art" role="img" aria-label="Fresh vegetables and grocery market illustration">
           <div className="market-sun" /><div className="market-bag">🥬<span>🥕</span><span>🍅</span><span>🥦</span></div>
-          <div className="market-caption"><strong>Picked nearby</strong><span>Delivered with care</span></div>
+          <div className="market-caption"><strong>Shop local</strong><span>Fresh choices, one basket</span></div>
         </div>
       </section>
 
@@ -239,7 +247,7 @@ export default function HomePage() {
           <label className="catalog-sort"><span>Sort</span><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort products"><option value="recommended">Recommended</option><option value="name">Name A–Z</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label>
         </div>
         <nav className="category-row" aria-label="Product categories">
-          {categories.map((value) => <button key={value} className={category === value ? "category active" : "category"} onClick={() => setCategory(value)}>{value}</button>)}
+          {categories.map((value) => <button key={value} className={category === value ? "category active" : "category"} onClick={() => setCategory(value)}><span className="category-emoji" aria-hidden="true">{categoryEmoji(value)}</span>{value}</button>)}
         </nav>
 
         {loading && <p className="feedback">Loading fresh picks…</p>}
