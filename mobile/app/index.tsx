@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 
-const API_BASE = (process.env.EXPO_PUBLIC_VEGZ_API_URL || "http://10.0.2.2:8003").replace(/\/$/, "");
+// In Expo Go, use the same LAN host that serves Metro so a physical phone can
+// reach the API on the developer's computer. Keep the emulator alias as fallback.
+const expoHost = Constants.expoConfig?.hostUri?.split(":")[0];
+const detectedApiBase = expoHost ? `http://${expoHost}:8003` : "http://10.0.2.2:8003";
+const API_BASE = (process.env.EXPO_PUBLIC_VEGZ_API_URL || detectedApiBase).replace(/\/$/, "");
 const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
  tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85", potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85", "red onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=85", carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85", spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85", broccoli:"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=700&q=85", cabbage:"https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85", ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85", garlic:"https://images.unsplash.com/photo-1615477550927-6ec8445c4e2d?auto=format&fit=crop&w=700&q=85", "green chilli":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85", lemon:"https://images.unsplash.com/photo-1513558161293-caac8ea942c8?auto=format&fit=crop&w=700&q=85", "green capsicum":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85"
 };
