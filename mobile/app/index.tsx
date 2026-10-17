@@ -29,6 +29,7 @@ async function api<T>(path: string, token = "", init: RequestInit = {}): Promise
 
 export default function Home() {
   const enter = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<any>(null);
   useEffect(() => {
     Animated.timing(enter, { toValue: 1, duration: 460, useNativeDriver: true }).start();
     return () => enter.stopAnimation();
@@ -174,7 +175,9 @@ export default function Home() {
     finally{setBusy(false);}
   }
 
-  return <SafeAreaView style={s.safe}><Animated.ScrollView style={{ opacity: enter }} contentContainerStyle={s.page}>
+  useEffect(() => { if (checkoutOpen) requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true })); }, [checkoutOpen]);
+
+  return <SafeAreaView style={s.safe}><Animated.ScrollView ref={scrollRef} style={{ opacity: enter }} contentContainerStyle={[s.page, count > 0 && !checkoutOpen && s.pageWithBasket]}>
     <View style={s.header}><Text style={s.brand}>vegz<Text style={s.period}>.</Text></Text><Text style={s.basketCount}>{count} in basket</Text></View>
     <Text style={s.eyebrow}>YOUR NEIGHBOURHOOD MARKET</Text><Text style={s.title}>Fresh market finds, delivered.</Text><Text style={s.sub}>Vegetables and everyday groceries from local stores in your city.</Text>
     <View style={s.marketHero}><Text style={s.heroEmoji}>🥬  🥕  🍅</Text><View><Text style={s.heroTitle}>Local stores. One basket.</Text><Text style={s.muted}>Fresh picks from Hubli and Dharwad shops</Text></View></View>
@@ -228,13 +231,30 @@ export default function Home() {
     {!!orderNotice&&<Text style={s.notice}>{orderNotice}</Text>}
     {!token?<Text style={s.muted}>Verify your phone at checkout to see order history.</Text>:orders.length===0?<Text style={s.muted}>No orders yet. Your order status will appear here after ordering.</Text>:orders.map(order=><View key={order.id} style={s.orderCard}><View style={s.orderRow}><Text style={s.orderCode}>{order.tracking_code}</Text><Text style={s.status}>{order.status.replace(/_/g," ")}</Text></View><Text style={s.price}>₹{Number(order.total_amount).toFixed(2)}</Text><Text style={s.muted}>Payment: {order.payment_status.replace(/_/g," ")} · {new Date(order.created_at).toLocaleString()}</Text></View>)}
     <Text style={s.note}>Vegz connects local vegetable and grocery shops with neighbourhood customers. Online payment and live GPS require production integrations.</Text>
-  </Animated.ScrollView></SafeAreaView>;
+  </Animated.ScrollView>
+    {count > 0 && !checkoutOpen && <View style={s.floatingBasket}>
+      <View style={s.floatingBasketInfo}>
+        <Text style={s.floatingBasketCount}>{count} {count === 1 ? "item" : "items"} in basket</Text>
+        <Text style={s.floatingBasketTotal}>₹{total.toFixed(2)}</Text>
+      </View>
+      <Pressable style={s.floatingBasketButton} onPress={() => { setCheckoutError(""); setCheckoutOpen(true); }}>
+        <Text style={s.floatingBasketButtonText}>View basket →</Text>
+      </Pressable>
+    </View>}
+    </SafeAreaView>;
 }
 
 function Action({label,onPress,disabled=false}:{label:string;onPress:()=>void;disabled?:boolean}){return <Pressable onPress={onPress} disabled={disabled} style={[s.action,disabled&&s.disabled]}><Text style={s.actionText}>{label}</Text></Pressable>}
 
 const s=StyleSheet.create({
 safe:{flex:1,backgroundColor:"#f6f8f1"},
+pageWithBasket:{paddingBottom:115},
+floatingBasket:{position:"absolute",left:14,right:14,bottom:12,backgroundColor:"#176b48",borderRadius:17,padding:13,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12,elevation:8,shadowColor:"#000",shadowOpacity:0.18,shadowRadius:10,shadowOffset:{width:0,height:4}},
+floatingBasketInfo:{flex:1,gap:3},
+floatingBasketCount:{fontSize:12,fontWeight:"700",color:"#e0f0e4"},
+floatingBasketTotal:{fontSize:21,fontWeight:"900",color:"#fff"},
+floatingBasketButton:{backgroundColor:"#fff",borderRadius:11,paddingHorizontal:15,paddingVertical:13},
+floatingBasketButtonText:{fontSize:13,fontWeight:"900",color:"#176b48"},
 page:{padding:16,paddingTop:22,paddingBottom:42,gap:13},
 header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:18},
 brand:{fontSize:29,fontWeight:"900",color:"#176b48",letterSpacing:-1},
