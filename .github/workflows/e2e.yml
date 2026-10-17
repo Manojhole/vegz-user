@@ -16,21 +16,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Manojhole/vegz-user
+          ref: dev
           path: vegz-user
       - name: Checkout shop app
         uses: actions/checkout@v4
         with:
           repository: Manojhole/vegz-shop
+          ref: dev
           path: vegz-shop
       - name: Checkout agent app
         uses: actions/checkout@v4
         with:
           repository: Manojhole/vegz-agent
+          ref: dev
           path: vegz-agent
       - name: Checkout admin app
         uses: actions/checkout@v4
         with:
           repository: Manojhole/vegz-admin
+          ref: dev
           path: vegz-admin
       - uses: actions/setup-python@v5
         with:
