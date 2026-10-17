@@ -98,6 +98,16 @@ export default function Home() {
   }, [loadAccount, loadCatalog]);
 
   const categories = useMemo(() => ["All", ...Array.from(new Set(items.map((item) => item.category).filter((v): v is string => Boolean(v))))], [items]);
+  const categoryEmoji = (value:string) => {
+    const key=value.toLowerCase();
+    if(value==="All")return "🛍️";
+    if(key.includes("leaf")||key.includes("spinach"))return "🥬";
+    if(key.includes("fruit"))return "🍎";
+    if(key.includes("grocer")||key.includes("staple"))return "🛒";
+    if(key.includes("spice")||key.includes("chilli"))return "🌶️";
+    if(key.includes("dairy"))return "🥛";
+    return "🥦";
+  };
   const visibleItems = useMemo(() => {
     const term = searchTerm.trim().toLocaleLowerCase();
     const filtered = items.filter((item) =>
@@ -167,13 +177,13 @@ export default function Home() {
   return <SafeAreaView style={s.safe}><Animated.ScrollView style={{ opacity: enter }} contentContainerStyle={s.page}>
     <View style={s.header}><Text style={s.brand}>vegz<Text style={s.period}>.</Text></Text><Text style={s.basketCount}>{count} in basket</Text></View>
     <Text style={s.eyebrow}>YOUR NEIGHBOURHOOD MARKET</Text><Text style={s.title}>Fresh market finds, delivered.</Text><Text style={s.sub}>Vegetables and everyday groceries from local stores in your city.</Text>
-    <View style={s.marketHero}><Text style={s.heroEmoji}>🥬  🥕  🍅</Text><View><Text style={s.heroTitle}>Local stores. One basket.</Text><Text style={s.muted}>Starting with Hubli and Dharwad</Text></View></View>
+    <View style={s.marketHero}><Text style={s.heroEmoji}>🥬  🥕  🍅</Text><View><Text style={s.heroTitle}>Local stores. One basket.</Text><Text style={s.muted}>Fresh picks from Hubli and Dharwad shops</Text></View></View>
     <View style={s.sectionHead}><Text style={s.sectionTitle}>Delivery city</Text><Text style={s.muted}>Choose at checkout too</Text></View>
     <View style={s.choiceRow}>{["Hubli","Dharwad"].map(value=><Pressable key={value} onPress={()=>{setCity(value);setLoading(true);setError("");}} style={[s.choice,city===value&&s.choiceActive]}><Text style={[s.choiceText,city===value&&s.choiceTextActive]}>{value}</Text></Pressable>)}</View>
     <View style={s.sectionHead}><Text style={s.sectionTitle}>Today's market</Text><Text style={s.muted}>{items.length} products</Text></View>
     <TextInput style={s.searchInput} value={searchTerm} onChangeText={setSearchTerm} placeholder="Search vegetables and groceries…" placeholderTextColor="#718077" accessibilityLabel="Search products"/>
     <View style={s.sortRow}><Text style={s.muted}>Sort by</Text>{([{value:"recommended",label:"Popular"},{value:"name",label:"A–Z"},{value:"price-low",label:"Price ↑"},{value:"price-high",label:"Price ↓"}] as const).map(option=><Pressable key={option.value} onPress={()=>setSortOrder(option.value)} style={[s.sortButton,sortOrder===option.value&&s.sortButtonActive]}><Text style={[s.sortText,sortOrder===option.value&&s.sortTextActive]}>{option.label}</Text></Pressable>)}</View>
-    <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categories}>{categories.map((value)=><Pressable key={value} onPress={()=>setCategory(value)} style={[s.category,category===value&&s.categoryActive]}><Text style={[s.categoryText,category===value&&s.categoryTextActive]}>{value}</Text></Pressable>)}</Animated.ScrollView>
+    <Animated.ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categories}>{categories.map((value)=><Pressable key={value} onPress={()=>setCategory(value)} style={[s.category,category===value&&s.categoryActive]}><Text style={s.categoryEmoji}>{categoryEmoji(value)}</Text><Text style={[s.categoryText,category===value&&s.categoryTextActive]}>{value}</Text></Pressable>)}</Animated.ScrollView>
     {loading&&<View style={s.message}><ActivityIndicator color="#176b48"/><Text style={s.muted}>Loading fresh picks…</Text></View>}
     {!!error&&<Text style={s.error}>{error}<Text onPress={()=>{setLoading(true);setError("");loadCatalog().catch((e)=>setError(e instanceof Error?e.message:"Catalog unavailable.")).finally(()=>setLoading(false));}}>  Retry</Text></Text>}
     {!loading&&!error&&visibleItems.length===0&&<Text style={s.muted}>No products in this category yet.</Text>}
@@ -245,15 +255,15 @@ sortButton:{borderWidth:1,borderColor:"#dbe5d8",borderRadius:9,backgroundColor:"
 sortButtonActive:{backgroundColor:"#e6f1e3",borderColor:"#176b48"},
 sortText:{fontSize:10,fontWeight:"700",color:"#53655a"},
 sortTextActive:{color:"#176b48"},
-categories:{gap:8,paddingVertical:6},
+categories:{gap:8,paddingVertical:6},\ncategoryEmoji:{fontSize:16},
 category:{paddingHorizontal:14,paddingVertical:9,borderRadius:20,borderWidth:1,borderColor:"#dbe5d8",backgroundColor:"#fff"},
 categoryActive:{backgroundColor:"#176b48",borderColor:"#176b48"},
 categoryText:{fontSize:12,fontWeight:"700",color:"#53655a"},
 categoryTextActive:{color:"#fff"},
 message:{flexDirection:"row",alignItems:"center",gap:10,padding:20},
 error:{color:"#a33525",backgroundColor:"#fff0ed",padding:12,borderRadius:10,fontSize:12,lineHeight:18},
-productCard:{flexDirection:"row",gap:12,backgroundColor:"#fff",borderRadius:15,borderWidth:1,borderColor:"#e2e9df",padding:10},
-image:{width:104,height:110,borderRadius:11,resizeMode:"cover",backgroundColor:"#eef2e8"},
+productCard:{flexDirection:"column",gap:9,backgroundColor:"#fff",borderRadius:15,borderWidth:1,borderColor:"#e2e9df",padding:10,width:"48.5%",minWidth:145},
+image:{width:"100%",height:128,borderRadius:11,resizeMode:"cover",backgroundColor:"#eef2e8"},
 imagePlaceholder:{alignItems:"center",justifyContent:"center"},
 productInfo:{flex:1,justifyContent:"center",gap:4,minWidth:0},
 categoryLabel:{fontSize:9,fontWeight:"900",letterSpacing:1,color:"#176b48",textTransform:"uppercase"},
@@ -268,7 +278,7 @@ qtyButton:{width:27,height:27,backgroundColor:"#edf5e9",borderRadius:7,alignItem
 qtyButtonText:{fontSize:17,fontWeight:"900",color:"#176b48"},
 qtyText:{fontSize:13,fontWeight:"900",color:"#176b48"},
 soon:{fontSize:10,fontWeight:"900",color:"#96531c",backgroundColor:"#fff4e7",padding:7,borderRadius:7,overflow:"hidden"},
-total:{backgroundColor:"#e6efdf",borderRadius:17,padding:16,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:5},
+total:{backgroundColor:"#e6efdf",borderRadius:17,padding:16,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:5,borderWidth:1,borderColor:"#d8e6d2"},
 totalLabel:{fontSize:15,fontWeight:"900",color:"#1b3027"},
 totalRight:{alignItems:"flex-end",gap:4},
 totalPrice:{fontSize:23,fontWeight:"900",color:"#176b48"},
