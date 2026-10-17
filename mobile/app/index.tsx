@@ -12,7 +12,22 @@ const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
  tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85", potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85", "red onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=85", carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85", spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85", broccoli:"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=700&q=85", cabbage:"https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85", ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85", garlic:"https://images.unsplash.com/photo-1615477550927-6ec8445c4e2d?auto=format&fit=crop&w=700&q=85", "green chilli":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85", lemon:"https://images.unsplash.com/photo-1513558161293-caac8ea942c8?auto=format&fit=crop&w=700&q=85", "green capsicum":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85"
 };
 function normalizedImageUrl(url?:string) { if(!url)return ""; if(/^https?:\/\//i.test(url))return url; return API_BASE + (url.startsWith("/") ? url : "/" + url); }
-function fallbackProductImage(name:string) { return PRODUCT_IMAGE_FALLBACKS[name.trim().toLowerCase()] || PRODUCT_IMAGE_FALLBACKS.tomato; }
+function fallbackProductImage(name:string) { return PRODUCT_IMAGE_FALLBACKS[name.trim().toLowerCase()] || ""; }
+function productEmoji(name:string) {
+  const key=name.toLowerCase();
+  if(key.includes("coconut"))return "🥥";
+  if(key.includes("garlic"))return "🧄";
+  if(key.includes("ginger"))return "🫚";
+  if(key.includes("chilli")||key.includes("pepper"))return "🌶️";
+  if(key.includes("onion"))return "🧅";
+  if(key.includes("potato"))return "🥔";
+  if(key.includes("tomato"))return "🍅";
+  if(key.includes("carrot"))return "🥕";
+  if(key.includes("lemon"))return "🍋";
+  if(key.includes("rice")||key.includes("dal")||key.includes("flour"))return "🌾";
+  if(key.includes("spinach")||key.includes("leaf")||key.includes("coriander")||key.includes("mint"))return "🥬";
+  return "🥦";
+}
 type Product = { id: number | string; name: string; category?: string; description?: string; image_url?: string; price: number | string; unit?: string; stock_qty?: number; shop_id?: number | null; shop_name?: string };
 type Address = { id: number; label: string; recipient_name: string; phone: string; line1: string; line2: string; landmark: string; city: string; state: string; postal_code: string; is_default: boolean };
 type Customer = { id: number; phone: string; full_name?: string | null };
@@ -38,6 +53,7 @@ export default function Home() {
   const [items, setItems] = useState<Product[]>([]);
   const [failedImages, setFailedImages] = useState<Record<string,number>>({});
   const [basketReady, setBasketReady] = useState(false);
+  const [basketOpen, setBasketOpen] = useState(false);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,7 +139,7 @@ export default function Home() {
     });
   }, [items, category, searchTerm, sortOrder]);
   const basket = items.filter((item) => (qty[String(item.id)] || 0) > 0);
-  const count = Object.values(qty).reduce((sum, value) => sum + value, 0);
+  const count = basket.reduce((sum, item) => sum + (qty[String(item.id)] || 0), 0);
   const subtotal = basket.reduce((sum, item) => sum + Number(item.price || 0) * (qty[String(item.id)] || 0), 0);
   const fee = subtotal === 0 || subtotal >= freeMinimum ? 0 : deliveryFee;
   const total = subtotal + fee;
@@ -177,7 +193,7 @@ export default function Home() {
 
   useEffect(() => { if (checkoutOpen) requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true })); }, [checkoutOpen]);
 
-  return <SafeAreaView style={s.safe}><Animated.ScrollView ref={scrollRef} style={{ opacity: enter }} contentContainerStyle={[s.page, count > 0 && !checkoutOpen && s.pageWithBasket]}>
+  return <SafeAreaView style={s.safe}><Animated.ScrollView ref={scrollRef} style={{ opacity: enter }} contentContainerStyle={[s.page, count > 0 && !checkoutOpen && !basketOpen && s.pageWithBasket]}>
     <View style={s.header}><Text style={s.brand}>vegz<Text style={s.period}>.</Text></Text><Text style={s.basketCount}>{count} in basket</Text></View>
     <Text style={s.eyebrow}>YOUR NEIGHBOURHOOD MARKET</Text><Text style={s.title}>Fresh market finds, delivered.</Text><Text style={s.sub}>Vegetables and everyday groceries from local stores in your city.</Text>
     <View style={s.marketHero}><Text style={s.heroEmoji}>🥬  🥕  🍅</Text><View><Text style={s.heroTitle}>Local stores. One basket.</Text><Text style={s.muted}>Fresh picks from Hubli and Dharwad shops</Text></View></View>
@@ -197,7 +213,7 @@ export default function Home() {
       const imageUri=imageState===0?primaryImage:imageState===1?fallbackProductImage(item.name):"";
       const stock=Number(item.stock_qty??0), maxQuantity=Math.min(99,stock>0?stock:99);
       return <View key={id} style={s.productCard}>
-        {imageUri?<Image source={{uri:imageUri}} style={s.image} onError={()=>setFailedImages((old)=>({...old,[id]:Math.min(2,(old[id]||0)+1)}))}/>:<View style={[s.image,s.imagePlaceholder]}><Text style={{fontSize:36}}>🥦</Text></View>}
+        {imageUri?<Image source={{uri:imageUri}} style={s.image} onError={()=>setFailedImages((old)=>({...old,[id]:Math.min(2,(old[id]||0)+1)}))}/>:<View style={[s.image,s.imagePlaceholder]}><Text style={{fontSize:36}}>{productEmoji(item.name)}</Text></View>}
         <View style={s.productInfo}><Text style={s.categoryLabel}>{item.category||"Market fresh"}</Text><Text style={s.name}>{item.name}</Text><Text style={s.muted}>{item.shop_name||"Local Vegz market"}</Text>
           <View style={s.productBottom}><Text style={s.price}>₹{Number(item.price||0).toFixed(2)} <Text style={s.unit}>/ {item.unit||"item"}</Text></Text>
             {quantity===0?<Pressable style={s.add} onPress={()=>changeQty(item,1)}><Text style={s.addText}>+ Add</Text></Pressable>:<View style={s.controls}><Pressable style={s.qtyButton} onPress={()=>changeQty(item,quantity-1)}><Text style={s.qtyButtonText}>−</Text></Pressable><Text style={s.qtyText}>{quantity}</Text><Pressable style={s.qtyButton} disabled={quantity>=maxQuantity} onPress={()=>changeQty(item,quantity+1)}><Text style={s.qtyButtonText}>+</Text></Pressable></View>}
@@ -205,6 +221,18 @@ export default function Home() {
         </View>
       </View>;
     })}</View>
+    {basketOpen && <View style={s.basketPanel}>
+      <View style={s.sectionHead}><Text style={s.sectionTitle}>Your basket</Text><Pressable onPress={() => setBasketOpen(false)}><Text style={s.link}>Close ×</Text></Pressable></View>
+      {basket.map((item) => <View key={String(item.id)} style={s.basketItem}>
+        <View style={s.basketItemInfo}><Text style={s.basketItemName}>{item.name}</Text><Text style={s.muted}>₹{Number(item.price||0).toFixed(2)} / {item.unit||"item"}</Text></View>
+        <View style={s.controls}><Pressable style={s.qtyButton} onPress={() => changeQty(item,(qty[String(item.id)]||0)-1)}><Text style={s.qtyButtonText}>−</Text></Pressable><Text style={s.qtyText}>{qty[String(item.id)]||0}</Text><Pressable style={s.qtyButton} onPress={() => changeQty(item,(qty[String(item.id)]||0)+1)}><Text style={s.qtyButtonText}>+</Text></Pressable></View>
+        <Text style={s.basketLineTotal}>₹{(Number(item.price||0)*(qty[String(item.id)]||0)).toFixed(2)}</Text>
+      </View>)}
+      <View style={s.basketTotals}><Text style={s.muted}>Subtotal</Text><Text style={s.basketItemName}>₹{subtotal.toFixed(2)}</Text></View>
+      <View style={s.basketTotals}><Text style={s.muted}>Delivery</Text><Text style={s.basketItemName}>{fee===0?"FREE":"₹"+fee.toFixed(2)}</Text></View>
+      <View style={s.basketTotals}><Text style={s.totalLabel}>Total</Text><Text style={s.totalPrice}>₹{total.toFixed(2)}</Text></View>
+      <Action label="Proceed to checkout →" onPress={() => { setBasketOpen(false); setCheckoutError(""); setCheckoutOpen(true); }} disabled={!basket.length}/>
+    </View>}
     <View style={s.total}><View><Text style={s.totalLabel}>Basket estimate</Text><Text style={s.muted}>{count} items · {fee===0?"Free delivery":`Delivery ₹${fee.toFixed(2)}`}</Text></View><View style={s.totalRight}><Text style={s.totalPrice}>₹{total.toFixed(2)}</Text><Pressable style={[s.action,count===0&&s.disabled]} disabled={count===0} onPress={()=>{setCheckoutError("");setCheckoutOpen(true);}}><Text style={s.actionText}>Checkout →</Text></Pressable></View></View>
     {checkoutOpen&&<View style={s.checkout}><View style={s.sectionHead}><Text style={s.sectionTitle}>Checkout</Text><Pressable onPress={()=>setCheckoutOpen(false)}><Text style={s.link}>Close ×</Text></Pressable></View>
       {!token?<View style={s.formCard}><Text style={s.cardTitle}>Verify your mobile number</Text><TextInput style={s.input} value={phone} onChangeText={setPhone} placeholder="+91 mobile number" keyboardType="phone-pad"/>
@@ -232,12 +260,12 @@ export default function Home() {
     {!token?<Text style={s.muted}>Verify your phone at checkout to see order history.</Text>:orders.length===0?<Text style={s.muted}>No orders yet. Your order status will appear here after ordering.</Text>:orders.map(order=><View key={order.id} style={s.orderCard}><View style={s.orderRow}><Text style={s.orderCode}>{order.tracking_code}</Text><Text style={s.status}>{order.status.replace(/_/g," ")}</Text></View><Text style={s.price}>₹{Number(order.total_amount).toFixed(2)}</Text><Text style={s.muted}>Payment: {order.payment_status.replace(/_/g," ")} · {new Date(order.created_at).toLocaleString()}</Text></View>)}
     <Text style={s.note}>Vegz connects local vegetable and grocery shops with neighbourhood customers. Online payment and live GPS require production integrations.</Text>
   </Animated.ScrollView>
-    {count > 0 && !checkoutOpen && <View style={s.floatingBasket}>
+    {count > 0 && !checkoutOpen && !basketOpen && <View style={s.floatingBasket}>
       <View style={s.floatingBasketInfo}>
         <Text style={s.floatingBasketCount}>{count} {count === 1 ? "item" : "items"} in basket</Text>
         <Text style={s.floatingBasketTotal}>₹{total.toFixed(2)}</Text>
       </View>
-      <Pressable style={s.floatingBasketButton} onPress={() => { setCheckoutError(""); setCheckoutOpen(true); }}>
+      <Pressable style={s.floatingBasketButton} onPress={() => { setBasketOpen(true); requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true })); }}>
         <Text style={s.floatingBasketButtonText}>View basket →</Text>
       </Pressable>
     </View>}
@@ -249,6 +277,12 @@ function Action({label,onPress,disabled=false}:{label:string;onPress:()=>void;di
 const s=StyleSheet.create({
 safe:{flex:1,backgroundColor:"#f6f8f1"},
 pageWithBasket:{paddingBottom:115},
+basketPanel:{backgroundColor:"#fff",borderRadius:17,padding:14,gap:12,borderWidth:1,borderColor:"#dbe5d8"},
+basketItem:{flexDirection:"row",alignItems:"center",gap:8,paddingVertical:9,borderBottomWidth:1,borderBottomColor:"#edf0e8"},
+basketItemInfo:{flex:1,gap:3,minWidth:0},
+basketItemName:{fontSize:13,fontWeight:"900",color:"#1b3027"},
+basketLineTotal:{fontSize:12,fontWeight:"900",color:"#176b48",minWidth:58,textAlign:"right"},
+basketTotals:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:10},
 floatingBasket:{position:"absolute",left:14,right:14,bottom:12,backgroundColor:"#176b48",borderRadius:17,padding:13,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12,elevation:8,shadowColor:"#000",shadowOpacity:0.18,shadowRadius:10,shadowOffset:{width:0,height:4}},
 floatingBasketInfo:{flex:1,gap:3},
 floatingBasketCount:{fontSize:12,fontWeight:"700",color:"#e0f0e4"},
