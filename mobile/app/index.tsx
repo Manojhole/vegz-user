@@ -187,7 +187,7 @@ export default function Home() {
     {loading&&<View style={s.message}><ActivityIndicator color="#176b48"/><Text style={s.muted}>Loading fresh picks…</Text></View>}
     {!!error&&<Text style={s.error}>{error}<Text onPress={()=>{setLoading(true);setError("");loadCatalog().catch((e)=>setError(e instanceof Error?e.message:"Catalog unavailable.")).finally(()=>setLoading(false));}}>  Retry</Text></Text>}
     {!loading&&!error&&visibleItems.length===0&&<Text style={s.muted}>No products in this category yet.</Text>}
-    {visibleItems.map((item)=>{
+    <View style={s.productGrid}>{visibleItems.map((item)=>{
       const id=String(item.id), quantity=qty[id]||0;
       const imageState=failedImages[id]||0;
       const primaryImage=normalizedImageUrl(item.image_url)||fallbackProductImage(item.name);
@@ -201,7 +201,7 @@ export default function Home() {
           </View>
         </View>
       </View>;
-    })}
+    })}</View>
     <View style={s.total}><View><Text style={s.totalLabel}>Basket estimate</Text><Text style={s.muted}>{count} items · {fee===0?"Free delivery":`Delivery ₹${fee.toFixed(2)}`}</Text></View><View style={s.totalRight}><Text style={s.totalPrice}>₹{total.toFixed(2)}</Text><Pressable style={[s.action,count===0&&s.disabled]} disabled={count===0} onPress={()=>{setCheckoutError("");setCheckoutOpen(true);}}><Text style={s.actionText}>Checkout →</Text></Pressable></View></View>
     {checkoutOpen&&<View style={s.checkout}><View style={s.sectionHead}><Text style={s.sectionTitle}>Checkout</Text><Pressable onPress={()=>setCheckoutOpen(false)}><Text style={s.link}>Close ×</Text></Pressable></View>
       {!token?<View style={s.formCard}><Text style={s.cardTitle}>Verify your mobile number</Text><TextInput style={s.input} value={phone} onChangeText={setPhone} placeholder="+91 mobile number" keyboardType="phone-pad"/>
@@ -262,7 +262,7 @@ categoryText:{fontSize:12,fontWeight:"700",color:"#53655a"},
 categoryTextActive:{color:"#fff"},
 message:{flexDirection:"row",alignItems:"center",gap:10,padding:20},
 error:{color:"#a33525",backgroundColor:"#fff0ed",padding:12,borderRadius:10,fontSize:12,lineHeight:18},
-productCard:{flexDirection:"column",gap:9,backgroundColor:"#fff",borderRadius:15,borderWidth:1,borderColor:"#e2e9df",padding:10,width:"48.5%",minWidth:145},
+productGrid:{flexDirection:"row",flexWrap:"wrap",justifyContent:"space-between",gap:10},\nproductCard:{flexDirection:"column",gap:9,backgroundColor:"#fff",borderRadius:15,borderWidth:1,borderColor:"#e2e9df",padding:10,width:"48%"},
 image:{width:"100%",height:128,borderRadius:11,resizeMode:"cover",backgroundColor:"#eef2e8"},
 imagePlaceholder:{alignItems:"center",justifyContent:"center"},
 productInfo:{flex:1,justifyContent:"center",gap:4,minWidth:0},
