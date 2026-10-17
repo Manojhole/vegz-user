@@ -55,3 +55,27 @@ body{background-image:radial-gradient(ellipse at 4% 0%,rgba(223,239,208,.42),tra
 @keyframes vegz-pop-in{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:scale(1)}}
 @media(hover:hover) and (pointer:fine){:where(.product-card,.shop-product-card,.record-card,.admin-stat-card,.stat-card,.agent-delivery-card,.shop-order-card):hover{box-shadow:var(--vegz-shadow-lift)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Quick-commerce-inspired Vegz shopping refinements; original Vegz branding and layout. */
+.store-header{position:sticky;top:0;z-index:20;background:rgba(246,248,241,.96);backdrop-filter:blur(14px);padding:10px 0 14px}
+.delivery-pill{white-space:nowrap}
+.category{display:inline-flex;align-items:center;gap:7px;min-height:42px;font-weight:700;box-shadow:0 1px 0 rgba(20,55,35,.03)}
+.category-emoji{font-size:17px;line-height:1}
+.catalog-section{scroll-margin-top:88px}
+.product-card{box-shadow:0 2px 9px rgba(20,55,35,.025)}
+.product-image{background:linear-gradient(135deg,#f2f5eb,#e9f0e2)}
+.add-button{min-width:74px;box-shadow:0 2px 0 #d5e6d0}
+.basket-summary{position:sticky;bottom:12px;z-index:15;box-shadow:0 8px 28px rgba(20,55,35,.10);border:1px solid #dbe8d4}
+@media(max-width:640px){
+ .store-header{padding:8px 0 12px}
+ .store-hero{padding:30px 0 28px}
+ .hero-copy h1{font-size:38px}
+ .market-art{min-height:160px;border-radius:22px}
+ .category-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+ .category-row::-webkit-scrollbar{display:none}
+ .category{white-space:nowrap;flex-shrink:0;padding:10px 13px}
+ .product-image{height:125px}
+ .product-info{padding:10px}
+ .basket-summary{bottom:8px;gap:10px;padding:13px;border-radius:16px}
+ .basket-total .primary-link{padding:11px 12px;gap:8px}
+}
