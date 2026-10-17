@@ -160,7 +160,7 @@ export default function HomePage() {
   }, [products, category, searchTerm, sortOrder]);
   const basketItems = products.filter((product) => (quantities[String(product.id)] || 0) > 0);
   const subtotal = basketItems.reduce((sum, product) => sum + Number(product.price || 0) * (quantities[String(product.id)] || 0), 0);
-  const itemCount = Object.values(quantities).reduce((sum, quantity) => sum + quantity, 0);
+  const itemCount = basketItems.reduce((sum, product) => sum + (quantities[String(product.id)] || 0), 0);
   const appliedDeliveryFee = subtotal >= freeDeliveryMinimum || subtotal === 0 ? 0 : deliveryFee;
   const total = subtotal + appliedDeliveryFee;
 
