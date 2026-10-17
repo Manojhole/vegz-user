@@ -21,6 +21,8 @@ export default function Home() {
   const [items, setItems] = useState<Product[]>([]);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [category, setCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<"recommended" | "name" | "price-low" | "price-high">("recommended");
   const [city, setCity] = useState("Hubli");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,7 +73,18 @@ export default function Home() {
   }, [loadAccount, loadCatalog]);
 
   const categories = useMemo(() => ["All", ...Array.from(new Set(items.map((item) => item.category).filter((v): v is string => Boolean(v))))], [items]);
-  const visibleItems = category === "All" ? items : items.filter((item) => item.category === category);
+  const visibleItems = useMemo(() => {
+    const term = searchTerm.trim().toLocaleLowerCase();
+    const filtered = items.filter((item) =>
+      (category === "All" || item.category === category) &&
+      (!term || `${item.name} ${item.category || ""} ${item.shop_name || ""}`.toLocaleLowerCase().includes(term))
+    );
+    return filtered.sort((a, b) => {
+      if (sortOrder === "price-low") return Number(a.price) - Number(b.price) || a.name.localeCompare(b.name);
+      if (sortOrder === "price-high") return Number(b.price) - Number(a.price) || a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
+  }, [items, category, searchTerm, sortOrder]);
   const basket = items.filter((item) => (qty[String(item.id)] || 0) > 0);
   const count = Object.values(qty).reduce((sum, value) => sum + value, 0);
   const subtotal = basket.reduce((sum, item) => sum + Number(item.price || 0) * (qty[String(item.id)] || 0), 0);
@@ -128,6 +141,8 @@ export default function Home() {
     <View style={s.sectionHead}><Text style={s.sectionTitle}>Delivery city</Text><Text style={s.muted}>Choose at checkout too</Text></View>
     <View style={s.choiceRow}>{["Hubli","Dharwad"].map(value=><Pressable key={value} onPress={()=>{setCity(value);setLoading(true);setError("");}} style={[s.choice,city===value&&s.choiceActive]}><Text style={[s.choiceText,city===value&&s.choiceTextActive]}>{value}</Text></Pressable>)}</View>
     <View style={s.sectionHead}><Text style={s.sectionTitle}>Today's market</Text><Text style={s.muted}>{items.length} products</Text></View>
+    <TextInput style={s.searchInput} value={searchTerm} onChangeText={setSearchTerm} placeholder="Search vegetables and groceries…" placeholderTextColor="#718077" accessibilityLabel="Search products"/>
+    <View style={s.sortRow}><Text style={s.muted}>Sort by</Text>{([{value:"recommended",label:"Popular"},{value:"name",label:"A–Z"},{value:"price-low",label:"Price ↑"},{value:"price-high",label:"Price ↓"}] as const).map(option=><Pressable key={option.value} onPress={()=>setSortOrder(option.value)} style={[s.sortButton,sortOrder===option.value&&s.sortButtonActive]}><Text style={[s.sortText,sortOrder===option.value&&s.sortTextActive]}>{option.label}</Text></Pressable>)}</View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.categories}>{categories.map((value)=><Pressable key={value} onPress={()=>setCategory(value)} style={[s.category,category===value&&s.categoryActive]}><Text style={[s.categoryText,category===value&&s.categoryTextActive]}>{value}</Text></Pressable>)}</ScrollView>
     {loading&&<View style={s.message}><ActivityIndicator color="#176b48"/><Text style={s.muted}>Loading fresh picks…</Text></View>}
     {!!error&&<Text style={s.error}>{error}<Text onPress={()=>{setLoading(true);setError("");loadCatalog().catch((e)=>setError(e instanceof Error?e.message:"Catalog unavailable.")).finally(()=>setLoading(false));}}>  Retry</Text></Text>}
@@ -190,6 +205,12 @@ heroTitle:{fontSize:15,fontWeight:"900",color:"#1b3027"},
 sectionHead:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginTop:10},
 sectionTitle:{fontSize:21,fontWeight:"900",color:"#1b3027"},
 muted:{fontSize:12,lineHeight:18,color:"#718077",marginTop:4},
+searchInput:{borderWidth:1,borderColor:"#dbe5d8",borderRadius:11,paddingHorizontal:13,paddingVertical:12,fontSize:14,color:"#1b3027",backgroundColor:"#fff"},
+sortRow:{flexDirection:"row",alignItems:"center",gap:7,flexWrap:"wrap"},
+sortButton:{borderWidth:1,borderColor:"#dbe5d8",borderRadius:9,backgroundColor:"#fff",paddingHorizontal:10,paddingVertical:7},
+sortButtonActive:{backgroundColor:"#e6f1e3",borderColor:"#176b48"},
+sortText:{fontSize:10,fontWeight:"700",color:"#53655a"},
+sortTextActive:{color:"#176b48"},
 categories:{gap:8,paddingVertical:6},
 category:{paddingHorizontal:14,paddingVertical:9,borderRadius:20,borderWidth:1,borderColor:"#dbe5d8",backgroundColor:"#fff"},
 categoryActive:{backgroundColor:"#176b48",borderColor:"#176b48"},
