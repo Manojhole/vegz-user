@@ -5,7 +5,8 @@ import Constants from "expo-constants";
 
 // In Expo Go, use the same LAN host that serves Metro so a physical phone can
 // reach the API on the developer's computer. Keep the emulator alias as fallback.
-const expoHost = Constants.expoConfig?.hostUri?.split(":")[0];
+const expoHostValue = (Constants.expoConfig as any)?.hostUri || (Constants as any).expoGoConfig?.debuggerHost;
+const expoHost = typeof expoHostValue === "string" ? expoHostValue.split(":")[0] : "";
 const detectedApiBase = expoHost ? `http://${expoHost}:8003` : "http://10.0.2.2:8003";
 const API_BASE = (process.env.EXPO_PUBLIC_VEGZ_API_URL || detectedApiBase).replace(/\/$/, "");
 const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
