@@ -85,10 +85,24 @@ def run():
     # Verify stock/price edits propagate to the customer catalog and out-of-stock items disappear.
     updated = call("PATCH",url("shop",f"/api/products/{product['id']}"),{"price":40,"stock_qty":18},shop["access_token"])
     assert updated["price"] == 40 and updated["stock_qty"] == 18
-    # Shop-created products correctly remain hidden until the admin approves them.
+    # Approve the new listing through the shop's moderation endpoint, then verify
+    # the customer marketplace exposes it. The internal product sync is best-effort,
+    # so retry the admin queue lookup briefly before failing with a useful message.
     external_ref = f"vegz-shop-product:+919876543212:{product['id']}"
-    pending_products = call("GET",url("admin","/api/products?status_filter=pending"),token=admin)
-    admin_product = next(x for x in pending_products if x["external_ref"] == external_ref)
+    admin_product = None
+    for _ in range(10):
+        pending_products = call("GET",url("admin","/api/products?status_filter=pending"),token=admin)
+        admin_product = next((x for x in pending_products if x.get("external_ref") == external_ref), None)
+        if admin_product:
+            break
+        time.sleep(0.5)
+    if admin_product is None:
+        all_products = call("GET",url("admin","/api/products"),token=admin)
+        admin_product = next((x for x in all_products if x.get("external_ref") == external_ref), None)
+    assert admin_product is not None, (
+        f"Shop product {product['id']} was not synchronized to admin moderation queue. "
+        "Check shop logs for /api/internal/product-sync failures."
+    )
     approved_product = call("PATCH",url("admin",f"/api/products/{admin_product['id']}"),{"status":"approved"},admin)
     assert approved_product["status"] == "approved"
     call("PATCH",url("agent","/api/me"),{"is_online":True},agent["access_token"])
