@@ -35,7 +35,22 @@ const PRODUCT_IMAGE_FALLBACKS: Record<string,string> = {
  tomato:"https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=700&q=85", potato:"https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=700&q=85", "red onion":"https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=700&q=85", carrot:"https://images.unsplash.com/photo-1445282768818-728615cc910a?auto=format&fit=crop&w=700&q=85", spinach:"https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=700&q=85", broccoli:"https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?auto=format&fit=crop&w=700&q=85", cabbage:"https://images.unsplash.com/photo-1594282486552-05f4d1e3d3c9?auto=format&fit=crop&w=700&q=85", ginger:"https://images.unsplash.com/photo-1615485500704-8e990f9900f2?auto=format&fit=crop&w=700&q=85", garlic:"https://images.unsplash.com/photo-1615477550927-6ec8445c4e2d?auto=format&fit=crop&w=700&q=85", "green chilli":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85", lemon:"https://images.unsplash.com/photo-1513558161293-caac8ea942c8?auto=format&fit=crop&w=700&q=85", "green capsicum":"https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=format&fit=crop&w=700&q=85"
 };
 function normalizedImageUrl(url?:string) { if(!url)return ""; if(/^https?:\/\//i.test(url))return url; return API_BASE + (url.startsWith("/") ? url : "/" + url); }
-function fallbackProductImage(name:string) { return PRODUCT_IMAGE_FALLBACKS[name.trim().toLowerCase()] || PRODUCT_IMAGE_FALLBACKS.tomato; }
+function fallbackProductImage(name:string) { return PRODUCT_IMAGE_FALLBACKS[name.trim().toLowerCase()] || ""; }
+function productEmoji(name:string) {
+  const key=name.toLowerCase();
+  if(key.includes("coconut"))return "🥥";
+  if(key.includes("garlic"))return "🧄";
+  if(key.includes("ginger"))return "🫚";
+  if(key.includes("chilli")||key.includes("pepper"))return "🌶️";
+  if(key.includes("onion"))return "🧅";
+  if(key.includes("potato"))return "🥔";
+  if(key.includes("tomato"))return "🍅";
+  if(key.includes("carrot"))return "🥕";
+  if(key.includes("lemon"))return "🍋";
+  if(key.includes("rice")||key.includes("dal")||key.includes("flour"))return "🌾";
+  if(key.includes("spinach")||key.includes("leaf")||key.includes("coriander")||key.includes("mint"))return "🥬";
+  return "🥦";
+}
 const EMPTY_ADDRESS = { label:"Home", recipient_name:"", phone:"", line1:"", line2:"", landmark:"", city:"Hubli", state:"Karnataka", postal_code:"", is_default:true };
 
 export default function HomePage() {
@@ -264,7 +279,7 @@ export default function HomePage() {
             const maxQuantity = Math.min(99, (product.stock_qty ?? 0) > 0 ? (product.stock_qty ?? 0) : 99);
             return <article className="product-card" key={id}>
               <div className="product-image">
-                {imageSrc ? <img src={imageSrc} alt={product.name} loading="lazy" onError={() => setFailedImages((old) => ({...old,[id]:Math.min(2,(old[id]||0)+1)}))} /> : <div className="image-placeholder">🥦</div>}
+                {imageSrc ? <img src={imageSrc} alt={product.name} loading="lazy" onError={() => setFailedImages((old) => ({...old,[id]:Math.min(2,(old[id]||0)+1)}))} /> : <div className="image-placeholder">{productEmoji(product.name)}</div>}
               </div>
               <div className="product-info"><span className="product-category">{product.category || "Market fresh"}</span><h3>{product.name}</h3><p className="product-shop">{product.shop_name || "Local Vegz market"}</p>
                 <div className="product-bottom"><div><strong>₹{Number(product.price || 0).toFixed(2)}</strong><span> / {product.unit || "item"}</span></div>
