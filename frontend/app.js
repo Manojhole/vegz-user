@@ -94,7 +94,7 @@ const PRODUCT_IMAGE_FALLBACKS = {
   sugar:"https://images.unsplash.com/photo-1581441363689-1f3c3c414635?auto=format&fit=crop&w=700&q=80",
   salt:"https://images.unsplash.com/photo-1518110925495-5fe2fda0442a?auto=format&fit=crop&w=700&q=80",
   "tea-powder":"https://images.unsplash.com/photo-1544787219-7f47deb58514?auto=format&fit=crop&w=700&q=80",
-  "turmeric-powder":"https://upload.wikimedia.org/wikipedia/commons/5/5d/Turmeric.JPG",
+  "turmeric-powder":"https://upload.wikimedia.org/wikipedia/commons/d/dc/Turmeric.JPG",
   "red-chilli-powder":"https://images.unsplash.com/photo-1601648764658-cf37e8c89b70?auto=format&fit=crop&w=700&q=80",
   "cumin-seeds":"https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=700&q=80",
   "mustard-seeds":"https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=700&q=80",
