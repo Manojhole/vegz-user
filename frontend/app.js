@@ -139,7 +139,11 @@ function attachProductImageFallbacks(root) {
         image.dataset.fallbackTried = "1";
         image.src = fallback;
       } else {
+        // If both the catalog image and its fallback fail, hide the broken-image
+        // icon/alt text and leave the product-specific emoji visible instead.
         image.parentElement.classList.add("image-fallback");
+        image.style.display = "none";
+        image.removeAttribute("alt");
       }
     });
   });
